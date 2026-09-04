@@ -171,11 +171,11 @@ compelled to copy the source along with the object code.
 
   4. You may not copy, modify, sublicense, or distribute the Program
 except as expressly provided under this License.  Any attempt
-otherwise to copy, modify, sublicense or distribute the Program is
-void, and will automatically terminate your rights under this License.
-However, parties who have received copies, or rights, from you under
-this License will not have their licenses terminated so long as such
-parties remain in full compliance.
+otherwise to copy, sublicense or distribute the Program is void, and
+will automatically terminate your rights under this License.  However,
+parties who have received copies, or rights, from you under this License
+will not have their licenses terminated so long as such parties remain in
+full compliance.
 
   5. You are not required to accept this License, since you have not
 signed it.  However, nothing else grants you permission to modify or
@@ -186,7 +186,7 @@ Program), you indicate your acceptance of this License to do so, and
 all its terms and conditions for copying, distributing or modifying
 the Program or works based on it.
 
-  6. Each time you redistribute the Program (or a work based on the
+  6. Each time you redistribute the Program (or any work based on the
 Program), the recipient automatically receives a license from the
 original licensor to copy, distribute or modify the Program subject to
 these terms and conditions.  You may not impose any further
@@ -208,7 +208,7 @@ the only way you could satisfy both it and this License would be to
 refrain entirely from distribution of the Program.
 
 If any portion of this section is held invalid or unenforceable under
-any particular circumstance, the balance of this section is intended to
+any particular circumstance, the balance of the section is intended to
 apply and the section as a whole is intended to apply in other
 circumstances.
 
