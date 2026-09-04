@@ -1,0 +1,81 @@
+name: Phase 0 CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase0-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portable-gates:
+    name: Portable Phase 0 gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Tooling and probe contracts
+        run: make hardware-tool-test
+
+      - name: Offline sanitizer suite
+        run: make host-test-offline
+
+      - name: Strict production compile
+        run: python3 scripts/verify-host-strict-compile.py --repo .
+
+      - name: Package policy
+        run: make verify-package-policy
+
+      - name: Dependency locks
+        run: make verify-locks
+
+      - name: Title ID collision guard
+        run: make check-title-id
+
+      - name: Patch whitespace
+        run: git diff --check
+
+  canonical-host:
+    name: Canonical Catch2 host suite
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Install verified CMake 4.4.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=/tmp/cmake-4.4.3-linux-x86_64.tar.gz
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            https://github.com/Kitware/CMake/releases/download/v4.4.3/cmake-4.4.3-linux-x86_64.tar.gz \
+            --output "$archive"
+          echo 'd6c83076c575bc00b823522ac974bda66d0af05d6ddc30e739c12385cf32c6cc  /tmp/cmake-4.4.3-linux-x86_64.tar.gz' \
+            | sha256sum --check --strict
+          sudo tar -xzf "$archive" -C /opt
+          echo '/opt/cmake-4.4.3-linux-x86_64/bin' >> "$GITHUB_PATH"
+
+      - name: Verify CMake version
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --version
+          test "$(cmake --version | awk 'NR==1 {print $3}')" = '4.4.3'
+
+      - name: Run pinned Catch2 suite
+        run: make host-test

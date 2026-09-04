@@ -1,0 +1,7 @@
+# Pinned official image. NOTE: this 2026-02-19 image predates devkitA64 r30 (released 2026-06-10),
+# so it is only a reproducible bootstrap and MUST fail scripts/verify-switch-toolchain.sh until a
+# pinned r30-capable image/toolchain layer is admitted. We deliberately do not pacman-upgrade here,
+# because that would turn this into a rolling, non-reproducible build.
+FROM devkitpro/devkita64:20260219@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
+WORKDIR /src
+CMD ["bash", "-lc", "scripts/verify-switch-toolchain.sh && python3 scripts/verify-dependency-lock.py && make switch"]

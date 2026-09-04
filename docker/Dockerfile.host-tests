@@ -1,0 +1,19 @@
+FROM debian:trixie-20260824-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates git ninja-build python3 g++ make curl \
+ && rm -rf /var/lib/apt/lists/*
+
+ARG CMAKE_VERSION=4.4.3
+ARG CMAKE_SHA256=d6c83076c575bc00b823522ac974bda66d0af05d6ddc30e739c12385cf32c6cc
+RUN curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+      --output /tmp/cmake.tar.gz \
+      "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz" \
+ && echo "${CMAKE_SHA256}  /tmp/cmake.tar.gz" | sha256sum --check --strict \
+ && tar -xzf /tmp/cmake.tar.gz -C /opt \
+ && rm -f /tmp/cmake.tar.gz \
+ && ln -s "/opt/cmake-${CMAKE_VERSION}-linux-x86_64/bin/cmake" /usr/local/bin/cmake \
+ && ln -s "/opt/cmake-${CMAKE_VERSION}-linux-x86_64/bin/ctest" /usr/local/bin/ctest
+
+WORKDIR /src
+CMD ["bash", "-lc", "python3 scripts/verify-dependency-lock.py --self-test && make host-test"]

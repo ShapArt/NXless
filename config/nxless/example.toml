@@ -1,0 +1,3 @@
+# NXless Phase 0 example configuration.
+# Phase 0 does not accept proxy profiles, VLESS URIs, subscription URLs or secrets.
+mode = "transparent"

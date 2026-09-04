@@ -1,0 +1,2 @@
+Checks: '-*,bugprone-*,performance-*,portability-*,readability-identifier-naming'
+WarningsAsErrors: 'bugprone-*'

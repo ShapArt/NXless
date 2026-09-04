@@ -1,0 +1,4 @@
+version=1.11.2
+commit=5388824
+source=https://github.com/Atmosphere-NX/Atmosphere
+devkitA64.version=r30
