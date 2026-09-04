@@ -1,5 +1,6 @@
 #include <nxless/diagnostics/ring_logger.hpp>
 #include <nxless/ipc/control_runtime.hpp>
+#include <nxless/ipc/control_state.hpp>
 #include <nxless/sys/boot/boot_coordinator.hpp>
 #include <nxless/sys/bsd/bsd_mitm_server.hpp>
 #include <nxless/sys/config/sd_config_store.hpp>
@@ -19,9 +20,8 @@ constinit bool g_sm_ready = false;
 constinit bool g_fs_ready = false;
 constinit bool g_sd_fs_open = false;
 constinit FsFileSystem g_sd_fs{};
-constinit nxless::ipc::RuntimeMode g_runtime_mode = nxless::ipc::RuntimeMode::ErrorPassthrough;
+constinit nxless::ipc::ControlState g_control_state{};
 constinit bool g_disable_flag_present = false;
-constinit std::int32_t g_last_internal_error = 0;
 constinit nxless::sys::platform::HosVersion g_hos{};
 
 nxless::diagnostics::RingLogger& GetLogger() noexcept {
@@ -74,15 +74,15 @@ bool StartControlService() noexcept {
         sizeof(g_control_thread_stack),
         kControlThreadPriority);
     if (R_FAILED(thread_rc)) {
-        g_last_internal_error = static_cast<std::int32_t>(thread_rc.GetValue());
+        g_control_state.SetLastInternalError(static_cast<std::int32_t>(thread_rc.GetValue()));
         return false;
     }
 
     auto service = sf::CreateSharedObjectEmplaced<nxless::sys::ipc::IControlService, nxless::sys::ipc::ControlService>(
-        GetControlRuntime(), &g_runtime_mode, &g_disable_flag_present, &g_last_internal_error, &g_hos);
+        GetControlRuntime(), g_control_state, g_disable_flag_present, g_hos);
     if (service == nullptr) {
         constexpr std::int32_t kControlObjectAllocationFailed = -1;
-        g_last_internal_error = kControlObjectAllocationFailed;
+        g_control_state.SetLastInternalError(kControlObjectAllocationFailed);
         os::DestroyThread(&g_control_thread);
         return false;
     }
@@ -91,7 +91,7 @@ bool StartControlService() noexcept {
     const Result register_rc = GetControlManager().RegisterObjectForServer(
         std::move(service), service_name, kControlMaxSessions);
     if (R_FAILED(register_rc)) {
-        g_last_internal_error = static_cast<std::int32_t>(register_rc.GetValue());
+        g_control_state.SetLastInternalError(static_cast<std::int32_t>(register_rc.GetValue()));
         os::DestroyThread(&g_control_thread);
         return false;
     }
@@ -109,7 +109,7 @@ void InitializeSystemModule() {
     const Result sm_rc = sm::Initialize();
     g_sm_ready = R_SUCCEEDED(sm_rc);
     if (!g_sm_ready) {
-        g_last_internal_error = static_cast<std::int32_t>(sm_rc.GetValue());
+        g_control_state.SetLastInternalError(static_cast<std::int32_t>(sm_rc.GetValue()));
         return;
     }
 
@@ -149,14 +149,14 @@ void Main() {
     const ::Result fs_rc = fsInitialize();
     g_fs_ready = R_SUCCEEDED(fs_rc);
     if (!g_fs_ready) {
-        g_last_internal_error = static_cast<std::int32_t>(fs_rc);
+        g_control_state.SetLastInternalError(static_cast<std::int32_t>(fs_rc));
     }
 
     if (g_fs_ready) {
         const ::Result sd_rc = fsOpenSdCardFileSystem(&g_sd_fs);
         g_sd_fs_open = R_SUCCEEDED(sd_rc);
         if (!g_sd_fs_open) {
-            g_last_internal_error = static_cast<std::int32_t>(sd_rc);
+            g_control_state.SetLastInternalError(static_cast<std::int32_t>(sd_rc));
         }
     }
 
@@ -169,9 +169,12 @@ void Main() {
     g_hos = nxless::sys::platform::QueryHosVersion();
     g_disable_flag_present = sd.disable_flag_present;
 
+    const nxless::status::BootDecision pre_control_decision = nxless::sys::boot::BuildBootDecision(sd, g_hos, true);
+    g_control_state.SetMode(pre_control_decision.mode);
+
     const bool control_available = StartControlService();
     const nxless::status::BootDecision decision = nxless::sys::boot::BuildBootDecision(sd, g_hos, control_available);
-    g_runtime_mode = decision.mode;
+    g_control_state.SetMode(decision.mode);
     nxless::sys::boot::ApplyBsdMitmAdmission(decision);
 
     if (!control_available || !decision.bsd_mitm_allowed) {
@@ -181,8 +184,9 @@ void Main() {
     static nxless::sys::bsd::HorizonBsdMitmServer bsd_manager;
     const Result register_rc = bsd_manager.RegisterIfAllowed(true);
     if (R_FAILED(register_rc)) {
-        g_last_internal_error = static_cast<std::int32_t>(register_rc.GetValue());
-        g_runtime_mode = nxless::ipc::RuntimeMode::ErrorPassthrough;
+        g_control_state.Store(
+            nxless::ipc::RuntimeMode::ErrorPassthrough,
+            static_cast<std::int32_t>(register_rc.GetValue()));
         nxless::sys::bsd::BsdMitmServer::SetAdmissionEnabled(false);
         IdleFailOpen();
     }

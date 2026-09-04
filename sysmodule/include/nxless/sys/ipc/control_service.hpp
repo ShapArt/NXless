@@ -2,20 +2,26 @@
 #if defined(ATMOSPHERE_OS_HORIZON)
 #include <stratosphere.hpp>
 #include <nxless/ipc/control_runtime.hpp>
+#include <nxless/ipc/control_state.hpp>
 
 namespace nxless::sys::ipc {
 inline constexpr const char* kControlServiceName="nxl:ctl";
 class ControlService {
 public:
-    ControlService(nxless::ipc::ControlRuntime& runtime, nxless::ipc::RuntimeMode* mode, bool* disable_flag,
-                   std::int32_t* last_error, platform::HosVersion* hos) noexcept
-        : runtime_(runtime), mode_(mode), disable_flag_(disable_flag), last_error_(last_error), hos_(hos) {}
+    ControlService(nxless::ipc::ControlRuntime& runtime,
+                   nxless::ipc::ControlState& state,
+                   bool disable_flag,
+                   platform::HosVersion hos) noexcept
+        : runtime_(runtime), state_(state), disable_flag_(disable_flag), hos_(hos) {}
     ams::Result GetVersion(ams::sf::Out<nxless::ipc::VersionInfo> out) noexcept;
     ams::Result GetCompatibility(ams::sf::Out<nxless::ipc::CompatibilityInfo> out) noexcept;
     ams::Result GetStatus(ams::sf::Out<nxless::ipc::RuntimeStatus> out) noexcept;
     ams::Result GetRecentLogs(ams::sf::Out<std::uint32_t> out_count, const ams::sf::OutArray<nxless::ipc::ControlLogEventWire>& out) noexcept;
 private:
-    nxless::ipc::ControlRuntime& runtime_; nxless::ipc::RuntimeMode* mode_; bool* disable_flag_; std::int32_t* last_error_; platform::HosVersion* hos_;
+    nxless::ipc::ControlRuntime& runtime_;
+    nxless::ipc::ControlState& state_;
+    bool disable_flag_;
+    platform::HosVersion hos_;
 };
 }
 #define AMS_NXLESS_CTL_INTERFACE(C,H) \

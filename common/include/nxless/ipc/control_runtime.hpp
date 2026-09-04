@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <nxless/diagnostics/ring_logger.hpp>
 #include <nxless/ipc/control_protocol.hpp>
+#include <nxless/ipc/control_state.hpp>
 #include <nxless/socket/socket_registry.hpp>
 
 namespace nxless::ipc {

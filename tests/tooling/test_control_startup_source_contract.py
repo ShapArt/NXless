@@ -28,3 +28,15 @@ class ControlStartupSourceContractTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class ControlStatusConcurrencySourceContractTests(unittest.TestCase):
+    def test_main_uses_atomic_control_state_instead_of_raw_runtime_globals(self):
+        self.assertIn('nxless::ipc::ControlState g_control_state', MAIN)
+        self.assertNotIn('g_runtime_mode', MAIN)
+        self.assertNotIn('g_last_internal_error', MAIN)
+
+    def test_control_state_is_initialized_before_service_thread_can_run(self):
+        self.assertLess(
+            MAIN.index('g_control_state.SetMode(pre_control_decision.mode)'),
+            MAIN.index('const bool control_available = StartControlService()'),
+        )
