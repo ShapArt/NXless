@@ -1,110 +1,100 @@
-# Phase 0 Acceptance Criteria
+# NXless Phase 0 acceptance gate
 
-**Phase 0 is not “complete” because it builds.** Every required item below needs fresh evidence attached to the release/PR test record.
+Phase 0 exists to prove that NXless can interpose on `bsd:u` transparently and recoverably before any proxy protocol is introduced.
 
-## A. Build/reproducibility
+Phase 1A (SOCKS5 TCP) is **blocked** until every required item below has objective evidence.
 
-- [ ] build uses pinned HOS research target / Atmosphère 1.11.2 **`5388824`** / libnx 4.12.0 **`7644c9b26099aa2d2145bc72a21ee24190e92085`** / devkitA64 r30 toolchain lock;
-- [ ] clean container build succeeds from a fresh checkout;
-- [ ] build records exact dependency SHAs/versions;
-- [ ] release-like package contains no production credentials/secret fixtures;
-- [ ] host tests run independently of Switch hardware.
+## Build and source identity
 
-## B. Safe boot/recovery
+- [ ] Git working tree used for the build is clean.
+- [ ] Source commit is recorded in the evidence JSON.
+- [ ] Atmosphere is exactly 1.11.2 / `5388824be146a89619e8d641acd64599cf1c5f62`.
+- [ ] devkitA64 is r30.
+- [ ] installed libnx package is exactly 4.12.0-1.
+- [ ] `scripts/verify-switch-toolchain.sh` passes.
+- [ ] pinned Atmosphere source verifier passes.
+- [ ] clean `make phase0-build` succeeds.
+- [ ] `output/NXless-phase0.zip` passes the package verifier.
+- [ ] package SHA-256 is recorded.
 
-- [ ] console cold-boots reliably with sysmodule installed;
-- [ ] `sdmc:/config/nxless/disable.flag` prevents BSD interception from activating;
-- [ ] corrupt config boots in disconnected/fail-open safe mode;
-- [ ] missing config boots safely;
-- [ ] SD read error path does not fatal-abort;
-- [ ] unsupported HOS path leaves MITM disabled and exposes a typed status;
-- [ ] uninstall procedure restores normal boot/networking.
+This build gate is tracked by GitHub issue #2.
 
-## C. BSD MITM correctness
+## Host verification
 
-- [ ] `bsd:u` MITM session can be installed/acknowledged on the pinned stack;
-- [ ] full pinned command adapter is present and transparent-forward by default;
-- [ ] `Socket` fd is associated with a unique client/generation key;
-- [ ] `Connect`, `Bind`, `Listen`, `Accept` pass through correctly in no-proxy mode;
-- [ ] send/recv/read/write pass through correctly;
-- [ ] sendto/recvfrom pass through correctly;
-- [ ] Poll/Select passthrough matches baseline test app behavior;
-- [ ] Fcntl/Ioctl/GetSockOpt/SetSockOpt required by test apps pass through;
-- [ ] Shutdown/Close remove state exactly once;
-- [ ] session teardown removes all owned state;
-- [ ] fd reuse creates a new generation and cannot access stale state;
-- [ ] one selected socket can be marked `ProxyCandidate` in state without changing its traffic yet.
+The source revision used for hardware testing must have:
 
-## D. Host tests
+- [x] Portable Phase 0 GitHub Actions gates passing.
+- [x] Canonical Catch2 GitHub Actions suite passing.
+- [x] Offline ASan/UBSan suite available and passing in CI.
+- [x] Strict production compile with `-fno-exceptions -fno-rtti -Werror` passing.
+- [x] Dependency lock and Title ID checks passing.
 
-Required test classes:
+A later source revision must re-run these checks; a green older revision is not transferable evidence.
 
-- [ ] socket registry create/close/reuse;
-- [ ] two clients using same integer fd never collide;
-- [ ] concurrent registry operations under deterministic stress;
-- [ ] session teardown while sockets exist;
-- [ ] transparent result/errno propagation in fake BSD adapter;
-- [ ] malformed config falls back safely;
-- [ ] config size/profile limits;
-- [ ] secret redaction;
-- [ ] IPC version mismatch and oversized payload rejection;
-- [ ] recursion architecture test proves direct/original operations do not enter route pipeline;
-- [ ] logger ring remains bounded under flood.
+## Recovery / cold boot
 
-## E. Hardware smoke tests
+On original Nintendo Switch hardware running HOS 22.5.0 / Atmosphere 1.11.2:
 
-At minimum on original Switch hardware with HOS 22.5.0 + Atmosphère 1.11.2:
+- [ ] `disable.flag` present: 10 successful cold boots.
+- [ ] `nxl:ctl` reports `SafeDisabled` while the recovery flag is present.
+- [ ] transparent BSD MITM enabled: 20 successful cold boots.
+- [ ] `nxl:ctl` reports `DisconnectedPassthrough` after successful Phase 0 admission.
+- [ ] removing only `/atmosphere/contents/0100000000004E58` while powered off restores normal boot/network behavior.
+- [ ] malformed/unreadable optional config cannot make boot fatal.
 
-- [ ] HBMenu TCP client works before/after NXless installation;
-- [ ] TCP echo test with concurrent connections;
-- [ ] UDP echo passthrough test;
-- [ ] at least two real applications/games that use networking launch and retain baseline network behavior;
-- [ ] HOME -> resume does not crash;
-- [ ] repeated sleep/wake does not crash;
-- [ ] Wi-Fi off/on does not crash;
-- [ ] AP reconnect/change does not crash;
-- [ ] dock Ethernet path tested if hardware is available;
-- [ ] socket churn test does not show registry leak;
-- [ ] repeated application launch/close does not increase active-state count;
-- [ ] cold boot repeated enough to detect intermittent session-order problems; test count recorded, not described as “many”.
+## Transparent network baseline
 
-## F. Resource evidence
+Using the test-only NXlessProbe and a controlled echo endpoint:
 
-- [ ] idle sysmodule heap/RSS-equivalent measurement recorded;
-- [ ] peak during socket churn recorded;
-- [ ] registry high-water mark recorded;
-- [ ] no unbounded log/config/socket container growth;
-- [ ] target private heap <= 6 MiB, or architecture review documents why it changed;
-- [ ] any request to exceed 8 MiB blocks Phase 0 exit pending architecture review.
+- [ ] TCP echo succeeds without NXless.
+- [ ] TCP echo succeeds with transparent NXless MITM.
+- [ ] UDP echo succeeds without NXless.
+- [ ] UDP echo succeeds with transparent NXless MITM.
+- [ ] concurrent socket probe stays within configured Phase 0 bounds.
+- [ ] no nested/recursive NXless proxy connection exists in Phase 0.
 
-## G. Stability/failure behavior
+## Real applications
 
-- [ ] Wi-Fi unavailable at boot does not abort;
-- [ ] network disappears during active socket test without sysmodule crash;
-- [ ] allocation-failure injection in portable paths returns typed errors where recoverable;
-- [ ] malformed IPC/config cannot trigger intentional fatal assertion;
-- [ ] no fd/state leaks detected by host accounting and hardware high-water counters.
+- [ ] at least two different real networked applications/games preserve their baseline network behavior with the transparent MITM installed.
 
-## H. Documentation/review gate
+Record application names/title IDs where practical; do not use two launches of the same application as two independent applications.
 
-- [ ] `docs/compatibility.md` contains the exact tested combination and evidence result;
-- [ ] `docs/bsd-mitm-research.md` updated with any observed HOS deviations/workarounds;
-- [ ] any workaround has root-cause evidence, not “reference project does this” as justification;
-- [ ] security review checks fatal assertions, logging and recovery path;
-- [ ] independent code review has no unresolved Critical/Important findings;
-- [ ] verification commands and hardware results are included before the words “Phase 0 complete” are used.
+## Lifecycle matrix
 
-## Explicit non-criteria
+- [ ] HOME/resume repetitions pass.
+- [ ] sleep/wake x20 passes.
+- [ ] Wi-Fi off/on x10 passes.
+- [ ] access-point change x5 passes.
+- [ ] application launch/close x20 passes.
+- [ ] airplane-mode / Wi-Fi transition passes.
+- [ ] Wi-Fi ↔ Ethernet transition passes when the required hardware is available; otherwise record it explicitly as not available rather than silently skipping it.
 
-Phase 0 does **not** require:
+## Resource and state evidence
 
-- SOCKS5;
-- VLESS;
-- TLS/REALITY;
-- UDP proxying;
-- DNS tunneling;
-- GUI polish;
-- overlay;
-- `bsd:s`/`bsd:a` interception.
+- [ ] active client count returns to baseline after application teardown.
+- [ ] active socket count returns to baseline after churn.
+- [ ] socket/client high-water marks are recorded.
+- [ ] no unbounded allocation or thread growth is observed.
+- [ ] no thread-per-socket behavior exists.
+- [ ] context-ID exhaustion falls back to Atmosphere raw-forward rather than creating context 0 state.
+- [ ] recent logs contain no credentials, VLESS URIs, Authorization values, private keys, subscription tokens, or other secrets.
 
-Adding those before this checklist passes is scope creep and increases boot risk without proving the foundation.
+## Review gate
+
+- [ ] machine-readable hardware evidence JSON is attached to issue #3 or otherwise archived with the exact source/build identity.
+- [ ] generated Markdown hardware report is attached/archived.
+- [ ] independent review has no unresolved Critical findings.
+- [ ] independent review has no unresolved Important findings.
+
+The original-Switch matrix is tracked by GitHub issue #3.
+
+## Exit condition
+
+Phase 0 may be called complete only when:
+
+1. GitHub host CI is green on the tested source revision;
+2. issue #2 is closed with exact build evidence;
+3. issue #3 is closed with the complete hardware evidence matrix;
+4. independent review has no unresolved Critical/Important findings.
+
+Until then, SOCKS5, VLESS, TLS, REALITY, Vision and DNS-tunneling implementation remain out of scope.
