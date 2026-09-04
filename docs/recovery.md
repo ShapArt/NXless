@@ -1,23 +1,29 @@
-# NXless Phase 0 recovery and uninstall
+# Phase 0 recovery
 
-NXless must always be recoverable from the SD card. It never requires a NAND modification.
+NXless Phase 0 is designed to fail open and to remain recoverable from the SD card without modifying NAND or Nintendo system files.
 
-## Recovery after a bad boot or networking regression
+## Primary recovery flag
 
-1. **Power off** the Nintendo Switch completely.
-2. Remove or otherwise access the SD card from a safe environment.
-3. Prefer the reversible recovery path: create the empty file `/config/nxless/disable.flag`.
-4. If that is not sufficient, remove the NXless-owned directory `/atmosphere/contents/0100000000004E58` from the SD card.
-5. Boot the console again.
-6. Verify **normal networking** without NXless interception before doing any further testing.
+Create:
 
-The `disable.flag` boot path is implemented and host-tested, but it is **not hardware-proven** until the Phase 0 hardware lifecycle matrix is completed on original Switch hardware. Keep the directory-removal recovery path available during all pre-release testing.
+`sdmc:/config/nxless/disable.flag`
 
-## Uninstall
+On the next cold boot NXless should expose the read-only control service but must not install the `bsd:u` MITM. `nxl:ctl` should report `SafeDisabled` when the flag was successfully detected.
 
-Power off the console and remove only NXless-owned SD-card paths:
+The hardware acceptance matrix requires 10 successful cold boots in this state before Phase 0 is considered proven.
 
-- `/atmosphere/contents/0100000000004E58`
-- `/config/nxless`
+## Full sysmodule removal
 
-Do not delete unrelated Atmosphere content directories. NXless does not require, and its uninstall procedure must never instruct, modification of NAND or Nintendo system files.
+If the recovery flag cannot be used, power the console fully off and remove:
+
+`/atmosphere/contents/0100000000004E58`
+
+Do not modify NAND or Nintendo system titles. Removing the NXless contents directory must restore the pre-NXless boot/network path.
+
+## Config errors
+
+`config.toml` is optional in Phase 0. A missing config is valid. Malformed, oversized, unreadable, or short-read config data must not cause a fatal boot path; the sysmodule must remain in an error/fail-open control-only mode.
+
+## Evidence
+
+Recovery results are recorded with `scripts/phase0_hardware.py` and are part of GitHub issue #3. Anecdotal “it boots” testing is not sufficient to close the hardware gate.
