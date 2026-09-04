@@ -8,7 +8,7 @@ NXless is a boot-resident networking component, so console stability and recover
 
 Primary goals:
 
-- ordinary config, SD, network, or upstream failures must not cause a boot loop;
+- ordinary NXless-controlled config, SD, compatibility, control-registration, or forwarded BSD-command failures must not cause a boot loop;
 - boot starts disconnected and fail-open;
 - `disable.flag` provides an SD-card recovery path;
 - no NAND/system-file modification;
@@ -25,11 +25,24 @@ Applications are untrusted clients of the intercepted `bsd:u` service. Integer f
 
 ### Original BSD service
 
-The Nintendo BSD service is the authoritative endpoint for Phase 0 socket operations. Transparent forwarding must preserve return values and BSD errno semantics.
+The Nintendo BSD service is the authoritative endpoint for Phase 0 socket operations. Transparent forwarding preserves two distinct error layers:
+
+1. Horizon/CMIF dispatch `Result` from the original service path;
+2. BSD `ret` / `errno` returned by a successfully dispatched BSD command.
+
+NXless must never manufacture a normal BSD failure to hide a platform-level dispatch failure. Registry state is mutated only after the corresponding original-service dispatch completes.
+
+### Atmosphere / libstratosphere
+
+Atmosphere is part of the trusted Phase 0 runtime framework, but its invariants are not all recoverable. At pinned revision `5388824`, `Server::AcknowledgeMitmSession()` wraps `sm::mitm::AcknowledgeSession(...)` in `R_ABORT_UNLESS`.
+
+That is an **upstream fatal boundary**, not an NXless recoverable error path. NXless therefore does not make an absolute claim that every possible SM/framework failure is fail-open. Repeated MITM session churn is part of the hardware gate specifically because this boundary must be exercised on the target console.
 
 ### NXless control plane
 
 `nxl:ctl` is versioned. Phase 0 exposes read-only version, compatibility, runtime status, and bounded recent logs. Mutation commands are intentionally absent.
+
+Runtime mode and last internal error are published as one packed atomic snapshot so control readers cannot observe a torn cross-thread state.
 
 ### SD card
 
@@ -46,13 +59,15 @@ Before installing the BSD MITM, NXless verifies:
 
 If those gates fail, BSD interception remains disabled. Unknown/unsupported HOS versions are control-only, not “best effort”.
 
+This fail-open policy applies to failures controlled by NXless. It does not override fatal assertions internal to the pinned Atmosphere server-manager implementation; those are tracked separately in `docs/risk-register.md` and the hardware gate.
+
 ## Recovery
 
 The primary recovery mechanism is:
 
 `/config/nxless/disable.flag`
 
-When present, NXless must not activate BSD interception. If necessary, removing `/atmosphere/contents/0100000000004E58` restores the pre-NXless sysmodule set.
+When present, NXless must not activate BSD interception. If necessary, removing `/atmosphere/contents/0100000000004E58` while powered off restores the pre-NXless sysmodule set.
 
 Recovery behavior is not considered proven until repeated cold-boot hardware testing passes.
 
@@ -102,4 +117,4 @@ The devkitPro `switch-mbedtls` 2.28.x line is not accepted as a new production T
 
 Dependencies/actions/toolchains are pinned. Current Phase 0 verification records exact Atmosphere/libnx/Catch2/CI pins and validates package contents before release-like output is accepted.
 
-A green host build does not imply a supported Switch release: hardware boot/lifecycle evidence remains mandatory.
+A green host build does not imply a supported Switch release: exact cross-build and hardware boot/lifecycle evidence remain mandatory through issues #2 and #3.
