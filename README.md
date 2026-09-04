@@ -1,36 +1,39 @@
 # NXless
 
-NXless is an experimental open-source system-wide TCP/UDP proxy/tunnel project for compatible Nintendo Switch Horizon applications under Atmosphere.
+NXless is an open-source Phase 0 proof of concept for a transparent `bsd:u` MITM on Nintendo Switch under Atmosphère.
 
-Phase 0 is intentionally narrow: a safe `bsd:u` interception proof of concept with transparent forwarding and bounded socket-state accounting. **No SOCKS5, VLESS, TLS, DNS interception, or packet-level VPN is implemented yet.**
+## Current Phase 0 scope
 
-## Current target
+- HOS 22.5.0 / Atmosphère 1.11.2 (`5388824`)
+- devkitA64 r30 / libnx 4.12.0-1 build target
+- transparent BSD socket forwarding only
+- typed lifecycle hooks for `Socket`, `SocketExempt`, `Accept`, and `Close`
+- raw-forward fallback for untyped MITM commands
+- read-only `nxl:ctl`
+- fail-open boot and `disable.flag` recovery
+- bounded diagnostics/socket tracking
+- host CI + machine-readable hardware evidence tooling
 
-- Nintendo Switch (original hardware)
-- HOS 22.5.0
-- Atmosphere 1.11.2 (`5388824`)
-- devkitA64 r30
-- libnx 4.12.0-1 build baseline
-- Program ID: `0100000000004E58`
+Phase 1 networking features such as SOCKS5, VLESS, TLS/REALITY/Vision and DNS tunneling are intentionally **not implemented yet**. They remain blocked until the exact Switch cross-build and original-hardware acceptance gates are complete.
 
-## Phase 0 design
+See:
+- `PHASE0_STATUS.md`
+- `docs/architecture.md`
+- `docs/security-model.md`
+- `docs/compatibility.md`
+- `docs/phase-0-acceptance.md`
+- GitHub issues #2 and #3
 
-NXless exposes a read-only `nxl:ctl` status service first, then enables the `bsd:u` MITM only after the HOS compatibility, SD recovery/config, and control-service gates pass.
+## Safety / recovery
 
-Only the fd-lifecycle hooks required for state accounting are typed (`Socket`, `SocketExempt`, `Accept`, `Close`). Other BSD commands rely on Atmosphere's MITM raw-forward path to the original service, reducing compatibility risk with newer command surfaces.
+If NXless prevents normal boot or networking during hardware testing, power the console off and create:
 
-Safe recovery is part of the design: `/config/nxless/disable.flag` prevents BSD interception. Ordinary config/SD errors are intended to fail open rather than turn into a boot-time networking failure.
+`/config/nxless/disable.flag`
 
-## Verification status
+The sysmodule must then remain control-only and must not install the BSD MITM.
 
-The portable Phase 0 implementation currently passes its available offline gates:
+Removing only `/atmosphere/contents/0100000000004E58` while powered off is the package-level recovery path.
 
-- 49 C++ tests under ASan/UBSan offline harness
-- strict production compile with `-fno-exceptions -fno-rtti -Werror`
-- package-policy self-tests
-- dependency/title-ID/source-contract gates
-- pinned host CI/container supply-chain checks
+## License
 
-The hardware gate is **not complete**. A real devkitA64 r30 cross-build and tests on an original Switch running HOS 22.5.0 / Atmosphere 1.11.2 are still required before Phase 1 (SOCKS5 TCP) begins.
-
-See the Phase 0 design and acceptance documents in `docs/` on this branch.
+NXless is intended to be distributed under GPL-2.0-only. The draft Phase 0 branch currently carries an SPDX notice; the verbatim GPL-2.0 license text is a merge blocker for PR #1 and must be restored before merge.
