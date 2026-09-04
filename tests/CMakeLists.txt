@@ -18,6 +18,7 @@ add_executable(nxless_unit_tests
   ../sysmodule/source/boot/boot_coordinator.cpp
   unit/ipc/control_protocol_tests.cpp
   unit/ipc/control_runtime_tests.cpp
+  unit/ipc/control_state_tests.cpp
   integration/fake_bsd/fake_bsd_backend.cpp
   integration/fake_bsd/transparent_forwarding_tests.cpp
   integration/fake_bsd/fault_injection_tests.cpp
