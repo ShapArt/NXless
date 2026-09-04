@@ -80,6 +80,16 @@ class Phase0HardwareTests(unittest.TestCase):
         self.assertIn("Phase 0 verdict: PASS", text)
         self.assertIn(record["build"]["nxless_commit"], text)
 
+    def test_markdown_verdict_label_matches_validation_level(self):
+        record = phase0.synthetic_complete_record()
+        preflight = phase0.render_markdown(record, level="preflight")
+        hardware = phase0.render_markdown(record, level="hardware")
+        phase0_text = phase0.render_markdown(record, level="phase0")
+        self.assertIn("Preflight verdict: PASS", preflight)
+        self.assertNotIn("Phase 0 verdict:", preflight)
+        self.assertIn("Hardware verdict: PASS", hardware)
+        self.assertIn("Phase 0 verdict: PASS", phase0_text)
+
 
 if __name__ == "__main__":
     unittest.main()

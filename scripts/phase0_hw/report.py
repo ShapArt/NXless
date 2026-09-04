@@ -6,14 +6,20 @@ from typing import Any
 from .schema import REQUIRED_COUNTS, new_record, _attempt
 from .validate import validate_record
 
+
 def render_markdown(record: dict[str, Any], level: str = "phase0") -> str:
     errors = validate_record(record, level=level)
     verdict = "PASS" if not errors else "FAIL"
+    verdict_label = {
+        "preflight": "Preflight",
+        "hardware": "Hardware",
+        "phase0": "Phase 0",
+    }[level]
     build = record.get("build", {})
     lines = [
         "# NXless Phase 0 hardware evidence",
         "",
-        f"**Phase 0 verdict: {verdict}**",
+        f"**{verdict_label} verdict: {verdict}**",
         "",
         "## Build identity",
         "",
