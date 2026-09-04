@@ -4,43 +4,35 @@
 **Remote branch:** `feat/phase0-bsd-mitm`  
 **Hardware gate:** NOT COMPLETE
 
-The remote branch now contains the Phase 0 portable core, sysmodule source, pinned build/CI configuration, canonical/offline C++ tests, fault-injection tests, recovery/package tooling, and the test-only HBMenu probe source. The source bootstrap was imported through GitHub's Git Data API because the development shell cannot resolve `github.com` for ordinary `git push`.
+The remote branch contains the Phase 0 portable core, Atmosphere sysmodule source, pinned build/CI configuration, canonical/offline C++ tests, fault-injection tests, recovery/package tooling, the test-only HBMenu probe, and the machine-readable hardware evidence recorder.
 
-The granular 21-commit local Conventional/DCO history is still preserved in the verified local repository/bundle, but this first remote source publication is a snapshot commit rather than a byte-for-byte replay of those local commit SHAs.
+The first source publication was imported through GitHub's Git Data API because the development shell could not use ordinary Git transport. Subsequent fixes and tooling changes are published as small reviewable commits on the feature branch.
 
-## Verified locally before publication
+## Verified
 
-- 49 C++ tests under ASan/UBSan: PASS;
-- strict production compile with exceptions/RTTI disabled and warnings-as-errors: PASS;
-- package policy 9/9: PASS;
-- dependency locks and pinned CI/container artifacts: PASS;
-- Title ID local collision gate for `0100000000004E58`: PASS;
+- GitHub Actions Portable Phase 0 gates: PASS;
+- GitHub Actions canonical Catch2 host suite: PASS;
 - bounded/thread-safe socket registry;
 - transparent BSD forwarding contract;
 - fail-open boot/recovery policy;
 - read-only `nxl:ctl` control plane;
+- synchronized atomic control runtime status;
 - typed lifecycle hooks for `Socket`, `SocketExempt`, `Accept`, `Close`;
 - raw-forward fallback for untyped MITM commands;
 - SD recovery/config reads through result-returning low-level FS path;
-- fault-injection suite and test-only HBMenu probe source.
+- fault-injection suite and test-only HBMenu probe;
+- machine-readable hardware evidence workflow.
 
-## Publication note
+## Hard gates before Phase 1A
 
-The large machine-readable hardware evidence recorder from the local baseline is being imported separately from the core source bootstrap. Until that import is complete, the remote branch must not be treated as the sole archival copy of the local Phase 0 tooling snapshot.
+1. Issue #2: exact devkitA64 r30 / libnx 4.12.0-1 Switch build.
+2. Issue #3: original-Switch hardware acceptance matrix.
 
-## Environment blockers
+Both gates must close with evidence before SOCKS5 TCP implementation starts.
 
-1. The original development shell cannot complete canonical Catch2 FetchContent because its DNS cannot resolve `github.com`; GitHub Actions is intended to provide this networked canonical host gate.
-2. A real devkitA64 r30 / libnx 4.12.0-1 cross-build has not yet been produced in the current runner.
-3. Original-Switch boot/lifecycle testing has not yet been run.
+## Merge blockers for PR #1
 
-## Required before Phase 1
-
-Phase 1A (SOCKS5 TCP) must not start until:
-
-- an exact devkitA64 r30 / libnx 4.12.0-1 build succeeds;
-- the Phase 0 package boots repeatedly on original Switch hardware;
-- `disable.flag` recovery is proven;
-- TCP/UDP transparent-baseline tests pass;
-- at least two real networked applications preserve baseline behavior;
-- sleep/wake, Wi-Fi reconnect/AP change, app churn and resource counters pass the recorded acceptance matrix.
+- exact Switch cross-build evidence is missing;
+- original-Switch recovery/network/lifecycle evidence is missing;
+- independent review must have zero unresolved Critical/Important findings;
+- the draft branch currently carries an SPDX GPL-2.0-only notice; the verbatim GPL-2.0 license text must be restored before merge.
