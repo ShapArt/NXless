@@ -10,6 +10,7 @@ WORKFLOW = ROOT / ".github" / "workflows" / "phase0-ci.yml"
 CI_LOCK = ROOT / "third_party" / "locks" / "ci.lock"
 CHECKOUT_SHA = "3d3c42e5aac5ba805825da76410c181273ba90b1"
 CMAKE_SHA256 = "d6c83076c575bc00b823522ac974bda66d0af05d6ddc30e739c12385cf32c6cc"
+UPLOAD_ARTIFACT_SHA = "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
 
 
 class Phase0CiWorkflowContractTests(unittest.TestCase):
@@ -59,10 +60,13 @@ class Phase0CiWorkflowContractTests(unittest.TestCase):
             lock[key] = value
         self.assertEqual(lock.get("actions_checkout.version"), "7.0.1")
         self.assertEqual(lock.get("actions_checkout.commit"), CHECKOUT_SHA)
+        self.assertEqual(lock.get("actions_upload_artifact.version"), "7.0.1")
+        self.assertEqual(lock.get("actions_upload_artifact.commit"), UPLOAD_ARTIFACT_SHA)
         self.assertEqual(lock.get("cmake.version"), "4.4.3")
         self.assertEqual(lock.get("cmake.linux_x86_64_sha256"), CMAKE_SHA256)
         text = self._text()
         self.assertIn(lock["actions_checkout.commit"], text)
+        self.assertIn(lock["actions_upload_artifact.commit"], text)
         self.assertIn(lock["cmake.linux_x86_64_sha256"], text)
 
     def test_ci_lock_is_enforced_by_dependency_verifier(self):
@@ -75,7 +79,26 @@ class Phase0CiWorkflowContractTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("ci: actions/checkout=7.0.1", result.stdout)
+        self.assertIn("upload-artifact=7.0.1", result.stdout)
         self.assertIn("cmake=4.4.3", result.stdout)
+
+    def test_evidence_job_exports_machine_readable_preflight(self):
+        text = self._text()
+        self.assertIn("evidence:", text)
+        self.assertIn("needs: [portable-gates, canonical-host]", text)
+        self.assertIn("make hardware-new-record", text)
+        self.assertIn("make hardware-record-host", text)
+        self.assertIn("--level preflight", text)
+        self.assertIn("--markdown", text)
+        self.assertIn(f"actions/upload-artifact@{UPLOAD_ARTIFACT_SHA}", text)
+        self.assertIn("if-no-files-found: error", text)
+        self.assertIn("retention-days: 30", text)
+        self.assertIn("id: record-evidence", text)
+        self.assertIn('source_sha="$(git rev-parse HEAD)"', text)
+        self.assertIn("source_sha=$source_sha", text)
+        self.assertIn("phase0-preflight-${{ steps.record-evidence.outputs.source_sha }}", text)
+        self.assertIn("evidence/phase0-${{ steps.record-evidence.outputs.source_sha }}.json", text)
+        self.assertIn("evidence/phase0-${{ steps.record-evidence.outputs.source_sha }}.md", text)
 
     def test_workflow_does_not_claim_switch_build(self):
         text = self._text().lower()

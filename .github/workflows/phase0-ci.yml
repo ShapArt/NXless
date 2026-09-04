@@ -79,3 +79,59 @@ jobs:
 
       - name: Run pinned Catch2 suite
         run: make host-test
+
+  evidence:
+    name: Machine-readable Phase 0 preflight
+    needs: [portable-gates, canonical-host]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout source head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install verified CMake 4.4.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=/tmp/cmake-4.4.3-linux-x86_64.tar.gz
+          curl --fail --location --proto '=https' --tlsv1.2 \
+            https://github.com/Kitware/CMake/releases/download/v4.4.3/cmake-4.4.3-linux-x86_64.tar.gz \
+            --output "$archive"
+          echo 'd6c83076c575bc00b823522ac974bda66d0af05d6ddc30e739c12385cf32c6cc  /tmp/cmake-4.4.3-linux-x86_64.tar.gz' \
+            | sha256sum --check --strict
+          sudo tar -xzf "$archive" -C /opt
+          echo '/opt/cmake-4.4.3-linux-x86_64/bin' >> "$GITHUB_PATH"
+
+      - name: Verify CMake version
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --version
+          test "$(cmake --version | awk 'NR==1 {print $3}')" = '4.4.3'
+
+      - name: Record machine-observed host evidence
+        id: record-evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          source_sha="$(git rev-parse HEAD)"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          record="evidence/phase0-${source_sha}.json"
+          report="evidence/phase0-${source_sha}.md"
+          make hardware-new-record RECORD="$record"
+          make hardware-record-host RECORD="$record"
+          python3 scripts/phase0_hardware.py check --record "$record" --level preflight --markdown "$report"
+
+      - name: Upload Phase 0 preflight evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: phase0-preflight-${{ steps.record-evidence.outputs.source_sha }}
+          path: |
+            evidence/phase0-${{ steps.record-evidence.outputs.source_sha }}.json
+            evidence/phase0-${{ steps.record-evidence.outputs.source_sha }}.md
+          if-no-files-found: error
+          retention-days: 30

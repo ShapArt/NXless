@@ -10,6 +10,7 @@ NXless Phase 0 references and/or integrates with the following upstream projects
 | ryu_ldn_nx | Architectural reference for `bsd:u` MITM patterns | GPL-2.0 | Reference only; no source copied into NXless |
 | Xray-core | Future protocol/interoperability reference | MPL-2.0 | Not part of Phase 0 runtime |
 | actions/checkout | GitHub Actions checkout step | MIT | CI-only; exact SHA pinned |
+| actions/upload-artifact | GitHub Actions evidence artifact transport | MIT | CI-only; exact SHA pinned |
 | CMake | Host build/test tooling | BSD-3-Clause | Build/CI-only; exact version and archive checksum pinned |
 
 Exact dependency and CI pins live in `third_party/locks/` and are checked by `scripts/verify-dependency-lock.py`.

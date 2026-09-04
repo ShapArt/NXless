@@ -35,6 +35,9 @@ CI_EXPECTED = {
     "actions_checkout.version": "7.0.1",
     "actions_checkout.commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
     "actions_checkout.source": "https://github.com/actions/checkout",
+    "actions_upload_artifact.version": "7.0.1",
+    "actions_upload_artifact.commit": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+    "actions_upload_artifact.source": "https://github.com/actions/upload-artifact",
     "cmake.version": "4.4.3",
     "cmake.linux_x86_64_sha256": "d6c83076c575bc00b823522ac974bda66d0af05d6ddc30e739c12385cf32c6cc",
     "cmake.source": "https://github.com/Kitware/CMake",
@@ -82,10 +85,12 @@ def verify_ci_lock(root: Path) -> str:
 
     if not HEX_COMMIT.fullmatch(data["actions_checkout.commit"]):
         raise LockError("ci: malformed actions_checkout.commit")
+    if not HEX_COMMIT.fullmatch(data["actions_upload_artifact.commit"]):
+        raise LockError("ci: malformed actions_upload_artifact.commit")
     if not HEX_SHA256.fullmatch(data["cmake.linux_x86_64_sha256"]):
         raise LockError("ci: malformed cmake.linux_x86_64_sha256")
 
-    for key in ("actions_checkout.source", "cmake.source"):
+    for key in ("actions_checkout.source", "actions_upload_artifact.source", "cmake.source"):
         parsed = urlparse(data[key])
         if parsed.scheme != "https" or parsed.netloc != "github.com":
             raise LockError(f"ci: unexpected source {data[key]}")
@@ -93,6 +98,7 @@ def verify_ci_lock(root: Path) -> str:
     return (
         "ci: actions/checkout="
         f"{data['actions_checkout.version']}@{data['actions_checkout.commit']} "
+        f"upload-artifact={data['actions_upload_artifact.version']}@{data['actions_upload_artifact.commit']} "
         f"cmake={data['cmake.version']} sha256={data['cmake.linux_x86_64_sha256']} source=ok"
     )
 
@@ -158,7 +164,10 @@ def run_self_test() -> None:
 
         missing = root / LOCKS["atmosphere"]
         original = missing.read_text(encoding="utf-8")
-        missing.write_text("\n".join(line for line in original.splitlines() if not line.startswith("version=")) + "\n", encoding="utf-8")
+        missing.write_text(
+            "\n".join(line for line in original.splitlines() if not line.startswith("version=")) + "\n",
+            encoding="utf-8",
+        )
         try:
             verify(root)
         except LockError as exc:
@@ -179,6 +188,17 @@ def run_self_test() -> None:
             assert "cmake.linux_x86_64_sha256" in str(exc)
         else:
             raise AssertionError("incorrect CI artifact digest accepted")
+
+        ci_lock.write_text(
+            original.replace(CI_EXPECTED["actions_upload_artifact.commit"], "1" * 40),
+            encoding="utf-8",
+        )
+        try:
+            verify(root)
+        except LockError as exc:
+            assert "actions_upload_artifact.commit" in str(exc)
+        else:
+            raise AssertionError("incorrect upload-artifact pin accepted")
 
 
 def main() -> int:
