@@ -1,12 +1,13 @@
 # NXless Phase 0 status
 
 **Remote Phase 0 branch:** `feat/phase0-bsd-mitm`  
+**Current remote head:** `5f98d8b7ebe4adf8cc7b0f6370a390e3fb0816b9`  
 **Remote implementation line:** published and CI-verified  
 **Hardware gate:** NOT COMPLETE
 
-The GitHub branch now contains the Phase 0 portable core, Atmosphere sysmodule source, pinned build/CI configuration, canonical and offline C++ tests, fault-injection tests, package/recovery tooling, machine-readable hardware evidence recorder, and the test-only HBMenu probe source.
+The GitHub branch contains the Phase 0 portable core, Atmosphere sysmodule source, pinned build/CI configuration, canonical and offline C++ tests, fault-injection tests, package/recovery tooling, machine-readable hardware evidence recorder, and the test-only HBMenu probe source.
 
-The initial source publication was imported through GitHub's Git Data API because the original development shell could not resolve `github.com` for ordinary Git transport. Follow-up fixes are committed directly on the feature branch and validated by GitHub Actions.
+The initial source publication was imported through GitHub's Git Data API because the original development shell could not resolve `github.com` for ordinary Git transport. Follow-up fixes and tooling changes are now published as small reviewable commits on the feature branch.
 
 ## Verified
 
@@ -18,7 +19,8 @@ The initial source publication was imported through GitHub's Git Data API becaus
 - dependency / CI / container pins: PASS;
 - Title ID collision guard for `0100000000004E58`: PASS;
 - machine-readable hardware recorder and tooling tests are present in the remote tree;
-- read-only `nxl:ctl`, fail-open boot/recovery policy and bounded socket state are covered by host/source-contract tests.
+- read-only `nxl:ctl`, fail-open boot/recovery policy and bounded socket state are covered by host/source-contract tests;
+- complete GPL-2.0 license text is present in the repository.
 
 ## Review findings already fixed
 
