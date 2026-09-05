@@ -3,7 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .schema import REQUIRED_COUNTS, new_record, _attempt
+from .schema import (
+    DEVKITA64_PACKAGE_PATTERN,
+    GCC_VERSION_PREFIX,
+    LIBNX_PACKAGE,
+    REQUIRED_COUNTS,
+    _attempt,
+    new_record,
+)
 from .validate import validate_record
 
 
@@ -27,8 +34,11 @@ def render_markdown(record: dict[str, Any], level: str = "phase0") -> str:
         f"- Package SHA-256: `{build.get('package_sha256', '')}`",
         f"- HOS: {build.get('hos', '')}",
         f"- Atmosphère: {build.get('atmosphere_version', '')} / `{build.get('atmosphere_commit', '')}`",
-        f"- libnx: {build.get('libnx_version', '')} / `{build.get('libnx_commit', '')}`",
-        f"- devkitA64: {build.get('devkitA64', '')}",
+        f"- libnx source: {build.get('libnx_version', '')} / `{build.get('libnx_commit', '')}`",
+        f"- admitted devkitA64: {build.get('devkitA64', '')}",
+        f"- observed devkitA64 package: `{build.get('observed_devkitA64_package', '')}`",
+        f"- observed GCC: `{build.get('observed_gcc_version', '')}`",
+        f"- observed libnx package: `{build.get('observed_libnx_package', '')}`",
         f"- Program ID: `{build.get('program_id', '')}`",
         "",
         "## Evidence counts",
@@ -51,7 +61,19 @@ def render_markdown(record: dict[str, Any], level: str = "phase0") -> str:
 
 def synthetic_complete_record() -> dict[str, Any]:
     record = new_record(Path.cwd())
-    record["build"].update({"nxless_commit": "9" * 40, "package_sha256": "a" * 64, "source_tree_clean": True, "switch_toolchain_verified": True, "atmosphere_source_verified": True, "clean_switch_build": True})
+    record["build"].update(
+        {
+            "nxless_commit": "9" * 40,
+            "package_sha256": "a" * 64,
+            "source_tree_clean": True,
+            "switch_toolchain_verified": True,
+            "atmosphere_source_verified": True,
+            "clean_switch_build": True,
+            "observed_devkitA64_package": "devkitA64 r30-1",
+            "observed_gcc_version": GCC_VERSION_PREFIX,
+            "observed_libnx_package": LIBNX_PACKAGE,
+        }
+    )
     hv = record["host_verification"]
     hv.update(
         {
