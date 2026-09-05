@@ -11,7 +11,7 @@ class SwitchBuildMakefileContractTests(unittest.TestCase):
     def test_clean_source_build_explicitly_builds_pinned_libstratosphere(self):
         text = MAKEFILE.read_text(encoding="utf-8")
         self.assertIn("ATMOSPHERE_LIBSTRATOSPHERE", text)
-        self.assertIn("libraries/libstratosphere", text)
+        self.assertIn("$(ATMOSPHERE_LIBRARIES_DIR)/libstratosphere", text)
         self.assertIn("nx_release", text)
         self.assertIn("$(ATMOSPHERE_LIBSTRATOSPHERE):", text)
 
