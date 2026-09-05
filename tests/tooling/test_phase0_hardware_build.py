@@ -28,7 +28,7 @@ class Phase0HardwareTests(unittest.TestCase):
         self.assertTrue(blockers)
         self.assertEqual(updated, before)
 
-    def test_record_switch_build_hashes_fresh_fixed_package(self):
+    def test_record_switch_build_hashes_fresh_fixed_package_and_records_observed_toolchain(self):
         from unittest.mock import patch
         import tempfile
         with tempfile.TemporaryDirectory() as td:
@@ -41,6 +41,9 @@ class Phase0HardwareTests(unittest.TestCase):
                 "package_sha256": "",
                 "clean_switch_build": False,
                 "source_tree_clean": True,
+                "observed_devkitA64_package": "",
+                "observed_gcc_version": "",
+                "observed_libnx_package": "",
             })
 
             def fake_git(_repo, *args):
@@ -59,7 +62,10 @@ class Phase0HardwareTests(unittest.TestCase):
                 "ready": True,
                 "blockers": [],
                 "toolchain_gate": "pass",
-                "toolchain_output": "devkitA64 r30 / libnx 4.12.0-1",
+                "toolchain_output": (
+                    'switch toolchain: devkit_pkg="devkitA64 r30-1"; '
+                    'gcc="16.1.0"; libnx_pkg="libnx 4.12.0-1"'
+                ),
                 "atmosphere_gate": "pass",
                 "atmosphere_output": "Atmosphere source PASS",
             }
@@ -73,6 +79,9 @@ class Phase0HardwareTests(unittest.TestCase):
             self.assertTrue(updated["build"]["atmosphere_source_verified"])
             self.assertEqual(updated["build"]["builder"], "tester")
             self.assertEqual(updated["build"]["package_sha256"], phase0.sha256_file(repo / "output" / "NXless-phase0.zip"))
+            self.assertEqual(updated["build"]["observed_devkitA64_package"], "devkitA64 r30-1")
+            self.assertEqual(updated["build"]["observed_gcc_version"], "16.1.0")
+            self.assertEqual(updated["build"]["observed_libnx_package"], "libnx 4.12.0-1")
 
     def test_tcp_and_udp_echo(self):
         server = phase0.EchoServer("127.0.0.1", tcp_port=0, udp_port=0)
