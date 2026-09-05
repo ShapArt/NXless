@@ -63,7 +63,7 @@ void ControlThreadMain(void*) {
     GetControlManager().LoopProcess();
 }
 
-void IdleFailOpen() noexcept {
+void NORETURN IdleFailOpen() noexcept {
     while (true) {
         svc::SleepThread(TimeSpan::FromSeconds(30).GetNanoSeconds());
     }
