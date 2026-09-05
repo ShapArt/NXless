@@ -8,10 +8,13 @@
 using namespace nxless;
 
 TEST_CASE("phase0 control DTOs are trivial standard layout", "[ipc]") {
+    STATIC_REQUIRE(std::is_trivial_v<ipc::VersionInfo>);
     STATIC_REQUIRE(std::is_trivially_copyable_v<ipc::VersionInfo>);
     STATIC_REQUIRE(std::is_standard_layout_v<ipc::VersionInfo>);
+    STATIC_REQUIRE(std::is_trivial_v<ipc::CompatibilityInfo>);
     STATIC_REQUIRE(std::is_trivially_copyable_v<ipc::CompatibilityInfo>);
     STATIC_REQUIRE(std::is_standard_layout_v<ipc::CompatibilityInfo>);
+    STATIC_REQUIRE(std::is_trivial_v<ipc::RuntimeStatus>);
     STATIC_REQUIRE(std::is_trivially_copyable_v<ipc::RuntimeStatus>);
     STATIC_REQUIRE(std::is_standard_layout_v<ipc::RuntimeStatus>);
     STATIC_REQUIRE(sizeof(ipc::VersionInfo) == 12);
