@@ -59,7 +59,6 @@ public:
     }
     BsdForwardResult Accept(int fd, std::span<std::byte> address, std::uint32_t& out_addrlen) noexcept;
     BsdForwardResult Close(int fd) noexcept;
-    BsdForwardResult DuplicateSocket(int fd) noexcept;
 
 private:
     BsdForwardResult SocketLike(std::uint32_t command, int domain, int type, int protocol) noexcept;

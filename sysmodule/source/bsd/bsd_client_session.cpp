@@ -55,16 +55,4 @@ BsdForwardResult BsdClientSession::Close(const int fd) noexcept {
     return result;
 }
 
-BsdForwardResult BsdClientSession::DuplicateSocket(const int fd) noexcept {
-    const auto source = attached_ ? registry_.Find(id_, fd) : std::nullopt;
-    const auto result = forwarder_.DuplicateSocket(fd);
-    if (attached_ && result.PlatformSucceeded() && result.bsd.ret >= 0) {
-        const int duplicate_fd = static_cast<int>(result.bsd.ret);
-        if (registry_.OnSocketCreated(id_, duplicate_fd) && source) {
-            static_cast<void>(registry_.SetTag(id_, duplicate_fd, source->tag));
-        }
-    }
-    return result;
-}
-
 } // namespace nxless::sys::bsd

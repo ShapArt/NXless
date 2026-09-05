@@ -13,7 +13,7 @@ class HorizonSourceContractTests(unittest.TestCase):
         self.assertNotIn('static_cast<std::byte*>(address.GetPointer())', SERVICE)
 
     def test_every_typed_bsd_hook_raw_forwards_when_tracking_context_is_unavailable(self):
-        handlers = ('Socket', 'SocketExempt', 'Accept', 'Close', 'DuplicateSocket')
+        handlers = ('Socket', 'SocketExempt', 'Accept', 'Close')
         for name in handlers:
             match = re.search(
                 rf'ams::Result BsdMitmService::{name}\([^{{]+\) noexcept \{{(?P<body>.*?)\n\}}',
@@ -25,12 +25,8 @@ class HorizonSourceContractTests(unittest.TestCase):
             self.assertIn('ams::sm::mitm::ResultShouldForwardToSession()', match.group('body'), name)
 
     def test_typed_hooks_preserve_original_platform_result_before_writing_bsd_outputs(self):
-        self.assertEqual(SERVICE.count('if (!result.PlatformSucceeded())'), 5)
-        self.assertEqual(SERVICE.count('return ams::Result(result.platform_result);'), 5)
-
-    def test_duplicate_socket_is_a_typed_state_hook(self):
-        self.assertIn('AMS_SF_METHOD_INFO(C,H,27,ams::Result,DuplicateSocket', SERVICE_HPP)
-        self.assertIn('session_.DuplicateSocket(fd)', SERVICE)
+        self.assertEqual(SERVICE.count('if (!result.PlatformSucceeded())'), 4)
+        self.assertEqual(SERVICE.count('return ams::Result(result.platform_result);'), 4)
 
     def test_context_zero_is_named_as_explicit_passthrough_fallback(self):
         self.assertIn('AllocateContextOrPassthrough', SERVICE)
