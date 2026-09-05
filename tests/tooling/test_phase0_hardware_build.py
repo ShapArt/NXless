@@ -21,7 +21,6 @@ class Phase0HardwareTests(unittest.TestCase):
 
     def test_failed_record_switch_build_preserves_existing_verified_evidence_atomically(self):
         record = phase0.synthetic_complete_record()
-        before = json.loads(json.dumps(record))
         record["build"]["nxless_commit"] = "0" * 40
         before = json.loads(json.dumps(record))
         updated, blockers = phase0.record_switch_build(record, Path(__file__).resolve().parents[2], builder="tester")
@@ -44,6 +43,7 @@ class Phase0HardwareTests(unittest.TestCase):
                 "observed_devkitA64_package": "",
                 "observed_gcc_version": "",
                 "observed_libnx_package": "",
+                "observed_atmosphere_commit": "",
             })
 
             def fake_git(_repo, *args):
@@ -58,6 +58,7 @@ class Phase0HardwareTests(unittest.TestCase):
                     (repo / "output" / "NXless-phase0.zip").write_bytes(b"fresh-package")
                 return "pass", "ok"
 
+            exact_atmosphere = "5388824be146a89619e8d641acd64599cf1c5f62"
             ready = {
                 "ready": True,
                 "blockers": [],
@@ -67,7 +68,7 @@ class Phase0HardwareTests(unittest.TestCase):
                     'gcc="16.1.0"; libnx_pkg="libnx 4.12.0-1"'
                 ),
                 "atmosphere_gate": "pass",
-                "atmosphere_output": "Atmosphere source PASS",
+                "atmosphere_output": f'Atmosphere source: commit="{exact_atmosphere}"',
             }
             with patch.object(phase0, "_git", side_effect=fake_git), \
                  patch.object(phase0, "preflight", return_value=ready), \
@@ -82,6 +83,42 @@ class Phase0HardwareTests(unittest.TestCase):
             self.assertEqual(updated["build"]["observed_devkitA64_package"], "devkitA64 r30-1")
             self.assertEqual(updated["build"]["observed_gcc_version"], "16.1.0")
             self.assertEqual(updated["build"]["observed_libnx_package"], "libnx 4.12.0-1")
+            self.assertEqual(updated["build"]["observed_atmosphere_commit"], exact_atmosphere)
+
+    def test_record_switch_build_rejects_unparseable_atmosphere_identity_atomically(self):
+        from unittest.mock import patch
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            (repo / "output").mkdir()
+            current_commit = "1" * 40
+            record = phase0.synthetic_complete_record()
+            record["build"]["nxless_commit"] = current_commit
+            before = json.loads(json.dumps(record))
+
+            def fake_git(_repo, *args):
+                if args == ("rev-parse", "HEAD"):
+                    return current_commit
+                if args == ("status", "--porcelain"):
+                    return ""
+                return ""
+
+            ready = {
+                "ready": True,
+                "blockers": [],
+                "toolchain_gate": "pass",
+                "toolchain_output": (
+                    'switch toolchain: devkit_pkg="devkitA64 r30-1"; '
+                    'gcc="16.1.0"; libnx_pkg="libnx 4.12.0-1"'
+                ),
+                "atmosphere_gate": "pass",
+                "atmosphere_output": "Atmosphere source: PASS",
+            }
+            with patch.object(phase0, "_git", side_effect=fake_git), \
+                 patch.object(phase0, "preflight", return_value=ready):
+                updated, blockers = phase0.record_switch_build(record, repo, builder="tester")
+            self.assertTrue(any("Atmosphere source gate output does not contain machine-readable observed identity" in b for b in blockers))
+            self.assertEqual(updated, before)
 
     def test_tcp_and_udp_echo(self):
         server = phase0.EchoServer("127.0.0.1", tcp_port=0, udp_port=0)
