@@ -6,6 +6,13 @@ on:
       - feat/phase0-bsd-mitm
     paths:
       - '.github/workflows/toolchain-probe.yml'
+      - 'sysmodule/**'
+      - 'common/**'
+      - 'config/**'
+      - 'third_party/locks/switch-toolchain.lock'
+      - 'scripts/verify-switch-toolchain.sh'
+      - 'scripts/verify-atmosphere-source.sh'
+      - 'scripts/verify-phase0-package.py'
   workflow_dispatch:
 
 permissions:
