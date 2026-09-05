@@ -3,7 +3,16 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .schema import ATMOSPHERE_VERSION, ATMOSPHERE_COMMIT, HOS, REQUIRED_COUNTS
+from .schema import (
+    ATMOSPHERE_VERSION,
+    ATMOSPHERE_COMMIT,
+    DEVKITA64_PACKAGE_PATTERN,
+    GCC_VERSION_PREFIX,
+    HOS,
+    LIBNX_PACKAGE,
+    REQUIRED_COUNTS,
+)
+
 
 def _all_attempts_ok(
     attempts: list[dict[str, Any]], label: str, errors: list[str], expected_ctl_status: str | None = None
@@ -36,6 +45,16 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
         errors.append("Atmosphere source identity was not machine-verified")
     if build.get("clean_switch_build") is not True:
         errors.append("clean Switch build is not PASS")
+
+    observed_devkit = str(build.get("observed_devkitA64_package", ""))
+    if re.fullmatch(DEVKITA64_PACKAGE_PATTERN, observed_devkit) is None:
+        errors.append("observed devkitA64 package does not match admitted r30")
+    observed_gcc = str(build.get("observed_gcc_version", ""))
+    if not observed_gcc.startswith(GCC_VERSION_PREFIX):
+        errors.append(f"observed GCC version must start with {GCC_VERSION_PREFIX}")
+    if build.get("observed_libnx_package") != LIBNX_PACKAGE:
+        errors.append(f"observed libnx package must be {LIBNX_PACKAGE}")
+
     package_sha = build.get("package_sha256", "")
     if not re.fullmatch(r"[0-9a-f]{64}", package_sha):
         errors.append("build.package_sha256 must be 64 lowercase hex characters")
