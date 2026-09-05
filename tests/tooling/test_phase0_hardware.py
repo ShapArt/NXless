@@ -24,6 +24,37 @@ class Phase0HardwareTests(unittest.TestCase):
         self.assertTrue(any("disable.flag cold boots" in e for e in errors))
         self.assertTrue(any("transparent MITM cold boots" in e for e in errors))
 
+    def test_new_record_leaves_observed_switch_toolchain_identity_empty(self):
+        build = phase0.new_record(Path(__file__).resolve().parents[2])["build"]
+        self.assertEqual(build["observed_devkitA64_package"], "")
+        self.assertEqual(build["observed_gcc_version"], "")
+        self.assertEqual(build["observed_libnx_package"], "")
+
+    def test_phase0_rejects_mismatched_observed_switch_toolchain_identity(self):
+        cases = (
+            (
+                "observed_devkitA64_package",
+                "devkitA64 r29-1",
+                "observed devkitA64 package does not match admitted r30",
+            ),
+            (
+                "observed_gcc_version",
+                "15.2.0",
+                "observed GCC version must start with 16.1.0",
+            ),
+            (
+                "observed_libnx_package",
+                "libnx 4.11.1-1",
+                "observed libnx package must be libnx 4.12.0-1",
+            ),
+        )
+        for field, bad_value, expected_error in cases:
+            with self.subTest(field=field):
+                record = phase0.synthetic_complete_record()
+                record["build"][field] = bad_value
+                errors = phase0.validate_record(record, level="phase0")
+                self.assertIn(expected_error, errors)
+
     def test_dirty_source_tree_blocks_phase0_verdict(self):
         record = phase0.synthetic_complete_record()
         record["build"]["source_tree_clean"] = False
