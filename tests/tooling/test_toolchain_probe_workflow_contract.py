@@ -5,6 +5,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "toolchain-probe.yml"
 PINNED_IMAGE = "devkitpro/devkita64:20260219@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282"
+PACKAGE_SHA256 = (
+    "0d61ad4946eb1080c6e645c41f0cfaac0a2eba5fec88426fef8f03363e933b5a",
+    "8192b899f0a5fcfe10d11fa63a631b45310c0c8f0b98d88c7c283c16e9d6b0fa",
+    "fc97ba1009a94b68f8714c3cc548ef697ca82687b72fe0c05a7ca3df81beb53e",
+    "66f100490dafe506495ee083bc932aa2c2f231b5dafaa2b203d1832389b700e9",
+    "c6950bdf8e4b872ece492225368c03e633776329548a7494f91aa1e8f239cd8a",
+)
+ATMOSPHERE_COMMIT = "5388824be146a89619e8d641acd64599cf1c5f62"
 
 
 class ToolchainProbeWorkflowContractTests(unittest.TestCase):
@@ -43,11 +51,21 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
         self.assertIn("--downloadonly", text)
         self.assertIn("sha256sum", text)
         self.assertIn("toolchain-package-sha256.txt", text)
+        for digest in PACKAGE_SHA256:
+            self.assertIn(digest, text)
 
     def test_probe_never_passes_detached_signatures_to_pacman_u(self):
         text = self._text()
         self.assertGreaterEqual(text.count("-name '*.pkg.tar.zst'"), 2)
         self.assertNotIn("-name '*.pkg.tar.*'", text)
+
+    def test_probe_fetches_exact_atmosphere_and_attempts_real_switch_package(self):
+        text = self._text()
+        self.assertIn("tag 1.11.2", text)
+        self.assertIn(ATMOSPHERE_COMMIT, text)
+        self.assertIn("scripts/verify-atmosphere-source.sh", text)
+        self.assertIn("make switch-package", text)
+        self.assertIn("output/NXless-phase0.zip", text)
 
 
 if __name__ == "__main__":
