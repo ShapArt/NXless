@@ -44,6 +44,11 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
         self.assertIn("sha256sum", text)
         self.assertIn("toolchain-package-sha256.txt", text)
 
+    def test_probe_never_passes_detached_signatures_to_pacman_u(self):
+        text = self._text()
+        self.assertGreaterEqual(text.count("-name '*.pkg.tar.zst'"), 2)
+        self.assertNotIn("-name '*.pkg.tar.*'", text)
+
 
 if __name__ == "__main__":
     unittest.main()
