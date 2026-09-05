@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+SCHEMA_VERSION = 2
 ATMOSPHERE_VERSION = "1.11.2"
 ATMOSPHERE_COMMIT = "5388824"
 LIBNX_VERSION = "4.12.0"
@@ -59,7 +60,7 @@ def new_record(repo_root: Path) -> dict[str, Any]:
     commit = _git(repo_root, "rev-parse", "HEAD") or "UNKNOWN"
     package_sha = ""
     return {
-        "schema_version": 1,
+        "schema_version": SCHEMA_VERSION,
         "build": {
             "nxless_commit": commit,
             "package_sha256": package_sha,
