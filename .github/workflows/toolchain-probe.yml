@@ -13,9 +13,9 @@ permissions:
 
 jobs:
   exact-r30-probe:
-    name: Probe exact r30 packages
+    name: Probe exact r30 packages and Switch build
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     container:
       image: devkitpro/devkita64:20260219@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
     steps:
@@ -24,7 +24,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Download exact Phase 0 toolchain packages
+      - name: Download and verify exact Phase 0 toolchain packages
         shell: bash
         run: |
           set -euo pipefail
@@ -45,6 +45,16 @@ jobs:
           "$PACMAN" -Sy --noconfirm
           mkdir -p toolchain-cache
           "$PACMAN" -S --downloadonly --noconfirm --cachedir "$PWD/toolchain-cache" "${packages[@]}"
+
+          cat > toolchain-package-sha256.expected <<'EOF'
+          0d61ad4946eb1080c6e645c41f0cfaac0a2eba5fec88426fef8f03363e933b5a  toolchain-cache/devkita64-binutils-2.46.0-1-x86_64.pkg.tar.zst
+          8192b899f0a5fcfe10d11fa63a631b45310c0c8f0b98d88c7c283c16e9d6b0fa  toolchain-cache/devkita64-gcc-16.1.0-1-x86_64.pkg.tar.zst
+          fc97ba1009a94b68f8714c3cc548ef697ca82687b72fe0c05a7ca3df81beb53e  toolchain-cache/devkita64-newlib-4.6.0.20260123-4-any.pkg.tar.zst
+          66f100490dafe506495ee083bc932aa2c2f231b5dafaa2b203d1832389b700e9  toolchain-cache/devkitA64-r30-1-any.pkg.tar.zst
+          c6950bdf8e4b872ece492225368c03e633776329548a7494f91aa1e8f239cd8a  toolchain-cache/libnx-4.12.0-1-any.pkg.tar.zst
+          EOF
+          sed -i 's/^          //' toolchain-package-sha256.expected
+          sha256sum --check --strict toolchain-package-sha256.expected
 
           find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 \
             | sort -z \
@@ -74,11 +84,38 @@ jobs:
           test "$("$PACMAN" -Q libnx)" = 'libnx 4.12.0-1'
           scripts/verify-switch-toolchain.sh
 
-      - name: Upload package hash evidence
+      - name: Fetch exact Atmosphere 1.11.2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf third_party/Atmosphere
+          mkdir -p third_party/Atmosphere
+          git init third_party/Atmosphere
+          git -C third_party/Atmosphere remote add origin https://github.com/Atmosphere-NX/Atmosphere.git
+          git -C third_party/Atmosphere fetch --depth 1 origin tag 1.11.2
+          git -C third_party/Atmosphere checkout --detach FETCH_HEAD
+          test "$(git -C third_party/Atmosphere rev-parse HEAD)" = '5388824be146a89619e8d641acd64599cf1c5f62'
+          scripts/verify-atmosphere-source.sh third_party/Atmosphere
+
+      - name: Cross-build Phase 0 Switch package
+        shell: bash
+        env:
+          NXLESS_ATMOSPHERE_ROOT: ${{ github.workspace }}/third_party/Atmosphere
+        run: |
+          set -euo pipefail
+          make switch-package
+          test -f output/NXless-phase0.zip
+          python3 scripts/verify-phase0-package.py output/phase0 --repo-root .
+          sha256sum output/NXless-phase0.zip | tee phase0-package-sha256.txt
+
+      - name: Upload toolchain and build evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: exact-r30-toolchain-probe-${{ github.sha }}
-          path: toolchain-package-sha256.txt
+          name: exact-r30-switch-build-${{ github.sha }}
+          path: |
+            toolchain-package-sha256.txt
+            phase0-package-sha256.txt
+            output/NXless-phase0.zip
           if-no-files-found: warn
           retention-days: 30
