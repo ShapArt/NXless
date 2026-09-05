@@ -88,6 +88,8 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
             "'scripts/phase0_build.py'",
             "'scripts/phase0_hardware.py'",
             "'scripts/phase0_hw/**'",
+            "'tests/tooling/**'",
+            "'tools/hardware_probe/**'",
         )
         for path in required_paths:
             self.assertIn(f"      - {path}", text)
