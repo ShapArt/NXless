@@ -6,6 +6,7 @@ from typing import Any
 from .schema import (
     ATMOSPHERE_VERSION,
     ATMOSPHERE_COMMIT,
+    ATMOSPHERE_FULL_COMMIT,
     DEVKITA64_PACKAGE_PATTERN,
     GCC_VERSION_PREFIX,
     HOS,
@@ -54,6 +55,8 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
         errors.append(f"observed GCC version must start with {GCC_VERSION_PREFIX}")
     if build.get("observed_libnx_package") != LIBNX_PACKAGE:
         errors.append(f"observed libnx package must be {LIBNX_PACKAGE}")
+    if build.get("observed_atmosphere_commit") != ATMOSPHERE_FULL_COMMIT:
+        errors.append("observed Atmosphere commit does not match admitted 1.11.2 source")
 
     package_sha = build.get("package_sha256", "")
     if not re.fullmatch(r"[0-9a-f]{64}", package_sha):
