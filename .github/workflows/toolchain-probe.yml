@@ -1,0 +1,84 @@
+name: Exact devkitA64 r30 toolchain probe
+
+on:
+  push:
+    branches:
+      - feat/phase0-bsd-mitm
+    paths:
+      - '.github/workflows/toolchain-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-r30-probe:
+    name: Probe exact r30 packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: devkitpro/devkita64:20260219@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Download exact Phase 0 toolchain packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v dkp-pacman >/dev/null 2>&1; then
+            PACMAN=dkp-pacman
+          else
+            PACMAN=pacman
+          fi
+
+          packages=(
+            'devkitA64=r30-1'
+            'devkita64-binutils=2.46.0-1'
+            'devkita64-gcc=16.1.0-1'
+            'devkita64-newlib=4.6.0.20260123-4'
+            'libnx=4.12.0-1'
+          )
+
+          "$PACMAN" -Sy --noconfirm
+          mkdir -p toolchain-cache
+          "$PACMAN" -S --downloadonly --noconfirm --cachedir "$PWD/toolchain-cache" "${packages[@]}"
+
+          find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.*' -print0 \
+            | sort -z \
+            | xargs -0 -r sha256sum \
+            > toolchain-package-sha256.txt
+          test -s toolchain-package-sha256.txt
+          cat toolchain-package-sha256.txt
+
+      - name: Install only the hashed local package archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v dkp-pacman >/dev/null 2>&1; then
+            PACMAN=dkp-pacman
+          else
+            PACMAN=pacman
+          fi
+
+          mapfile -d '' archives < <(find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.*' -print0 | sort -z)
+          test "${#archives[@]}" -ge 5
+          "$PACMAN" -U --noconfirm "${archives[@]}"
+
+          test "$("$PACMAN" -Q devkitA64)" = 'devkitA64 r30-1'
+          test "$("$PACMAN" -Q devkita64-binutils)" = 'devkita64-binutils 2.46.0-1'
+          test "$("$PACMAN" -Q devkita64-gcc)" = 'devkita64-gcc 16.1.0-1'
+          test "$("$PACMAN" -Q devkita64-newlib)" = 'devkita64-newlib 4.6.0.20260123-4'
+          test "$("$PACMAN" -Q libnx)" = 'libnx 4.12.0-1'
+          scripts/verify-switch-toolchain.sh
+
+      - name: Upload package hash evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: exact-r30-toolchain-probe-${{ github.sha }}
+          path: toolchain-package-sha256.txt
+          if-no-files-found: warn
+          retention-days: 30
