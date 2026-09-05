@@ -46,7 +46,7 @@ jobs:
           mkdir -p toolchain-cache
           "$PACMAN" -S --downloadonly --noconfirm --cachedir "$PWD/toolchain-cache" "${packages[@]}"
 
-          find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.*' -print0 \
+          find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 \
             | sort -z \
             | xargs -0 -r sha256sum \
             > toolchain-package-sha256.txt
@@ -63,8 +63,8 @@ jobs:
             PACMAN=pacman
           fi
 
-          mapfile -d '' archives < <(find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.*' -print0 | sort -z)
-          test "${#archives[@]}" -ge 5
+          mapfile -d '' archives < <(find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 | sort -z)
+          test "${#archives[@]}" -eq 5
           "$PACMAN" -U --noconfirm "${archives[@]}"
 
           test "$("$PACMAN" -Q devkitA64)" = 'devkitA64 r30-1'
