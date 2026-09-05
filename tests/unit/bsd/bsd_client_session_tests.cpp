@@ -95,6 +95,26 @@ TEST_CASE("session owns socket accept close and teardown registry state", "[bsd_
     REQUIRE(registry.ActiveSocketCount() == 0);
 }
 
+TEST_CASE("duplicate socket is tracked and inherits source interception tag", "[bsd_session]") {
+    nxless::socket::SocketRegistry registry;
+    Transport transport;
+    nxless::sys::bsd::BsdForwarder forwarder(transport);
+    nxless::sys::bsd::BsdClientSession session(78, forwarder, registry);
+
+    const auto socket_result = session.Socket(2, 1, 6);
+    REQUIRE(socket_result.platform_result == 0);
+    REQUIRE(socket_result.bsd.ret == 10);
+    REQUIRE(registry.SetTag(78, 10, nxless::socket::InterceptionTag::ProxyCandidate));
+
+    const auto duplicate_result = session.DuplicateSocket(10);
+    REQUIRE(duplicate_result.platform_result == 0);
+    REQUIRE(duplicate_result.bsd.ret == 11);
+    REQUIRE(registry.ActiveSocketCount() == 2);
+    const auto duplicate_state = registry.Find(78, 11);
+    REQUIRE(duplicate_state);
+    REQUIRE(duplicate_state->tag == nxless::socket::InterceptionTag::ProxyCandidate);
+}
+
 TEST_CASE("platform failure does not mutate session registry state", "[bsd_session]") {
     nxless::socket::SocketRegistry registry;
     Transport transport;

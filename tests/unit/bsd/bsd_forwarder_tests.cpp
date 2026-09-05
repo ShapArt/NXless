@@ -55,6 +55,7 @@ TEST_CASE("manifest is complete and hooks only stateful phase0 commands", "[bsd_
     REQUIRE(HandlingFor(3) == Handling::ForwardWithStateHook);
     REQUIRE(HandlingFor(12) == Handling::ForwardWithStateHook);
     REQUIRE(HandlingFor(26) == Handling::ForwardWithStateHook);
+    REQUIRE(HandlingFor(27) == Handling::ForwardWithStateHook);
     REQUIRE(HandlingFor(14) == Handling::RawForward);
     REQUIRE(HandlingFor(43) == Handling::RawForward);
 }
@@ -79,6 +80,21 @@ TEST_CASE("socket and close use pinned command ids and ret errno layout", "[bsd_
     REQUIRE(result.platform_result == 0);
     REQUIRE(transport.last == 26);
     REQUIRE(result.bsd.ret == 0);
+    REQUIRE(result.bsd.bsd_errno == 0);
+}
+
+TEST_CASE("duplicate socket uses command 27 and pinned 16 byte input layout", "[bsd_forwarder]") {
+    Transport transport;
+    nxless::sys::bsd::BsdForwarder forwarder(transport);
+    transport.ret = 41;
+
+    const auto result = forwarder.DuplicateSocket(7);
+    REQUIRE(result.platform_result == 0);
+    REQUIRE(transport.last == 27);
+    REQUIRE(transport.in_size == 16);
+    REQUIRE(transport.out_size == 8);
+    REQUIRE(transport.buffer_count == 0);
+    REQUIRE(result.bsd.ret == 41);
     REQUIRE(result.bsd.bsd_errno == 0);
 }
 
