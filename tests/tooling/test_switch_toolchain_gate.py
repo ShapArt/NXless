@@ -40,10 +40,18 @@ class SwitchToolchainGateTests(unittest.TestCase):
     def test_accepts_exact_r30_and_libnx_4120(self):
         result = self.run_gate("libnx 4.12.0-1")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("libnx 4.12.0-1", result.stdout)
+        self.assertEqual(
+            result.stdout.strip(),
+            'switch toolchain: devkit_pkg="devkitA64 r30-1"; gcc="16.1.0"; libnx_pkg="libnx 4.12.0-1"',
+        )
 
     def test_rejects_old_libnx_even_with_r30(self):
         result = self.run_gate("libnx 4.11.1-1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("expected libnx 4.12.0-1", result.stderr)
+
+    def test_rejects_suffix_after_exact_libnx_package_version(self):
+        result = self.run_gate("libnx 4.12.0-1evil")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("expected libnx 4.12.0-1", result.stderr)
 
