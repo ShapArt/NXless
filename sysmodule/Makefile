@@ -7,6 +7,7 @@ REPO_ROOT := $(abspath $(SYSMODULE_DIR)/..)
 NXLESS_ATMOSPHERE_ROOT ?= $(REPO_ROOT)/third_party/Atmosphere
 ATMOSPHERE_LIBRARIES_DIR := $(NXLESS_ATMOSPHERE_ROOT)/libraries
 STRATOSPHERE_MK := $(ATMOSPHERE_LIBRARIES_DIR)/config/templates/stratosphere.mk
+APP_JSON := $(SYSMODULE_DIR)/config/exefs.nsp.json
 
 ifeq ($(wildcard $(STRATOSPHERE_MK)),)
 $(error Missing $(STRATOSPHERE_MK). Set NXLESS_ATMOSPHERE_ROOT to Atmosphere commit 5388824)
@@ -26,7 +27,6 @@ SOURCES     := source source/boot source/bsd source/bsd/hos_22_5_0 source/config
                ../common/src/config ../common/src/diagnostics ../common/src/ipc ../common/src/socket ../common/src/status
 DATA        := data
 INCLUDES    := include ../common/include
-APP_JSON    := $(SYSMODULE_DIR)/config/exefs.nsp.json
 TITLE_ID    := 0100000000004E58
 OUTPUT_DIR  := $(REPO_ROOT)/output/phase0
 
