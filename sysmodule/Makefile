@@ -29,6 +29,7 @@ DATA        := data
 INCLUDES    := include ../common/include
 TITLE_ID    := 0100000000004E58
 OUTPUT_DIR  := $(REPO_ROOT)/output/phase0
+PACKAGE_ZIP := $(REPO_ROOT)/output/NXless-phase0.zip
 
 $(ATMOSPHERE_LIBSTRATOSPHERE):
 	@$(MAKE) --no-print-directory -C $(ATMOSPHERE_LIBRARIES_DIR)/libstratosphere nx_release
@@ -76,17 +77,18 @@ nxless-build: $(ATMOSPHERE_LIBSTRATOSPHERE)
 
 dist: all
 	@rm -rf $(OUTPUT_DIR)
+	@rm -f $(PACKAGE_ZIP)
 	@mkdir -p $(OUTPUT_DIR)/atmosphere/contents/$(TITLE_ID)/flags
 	@mkdir -p $(OUTPUT_DIR)/config/nxless
 	@cp $(TARGET).nsp $(OUTPUT_DIR)/atmosphere/contents/$(TITLE_ID)/exefs.nsp
 	@touch $(OUTPUT_DIR)/atmosphere/contents/$(TITLE_ID)/flags/boot2.flag
 	@cp $(REPO_ROOT)/config/nxless/example.toml $(OUTPUT_DIR)/config/nxless/example.toml
 	@python3 $(REPO_ROOT)/scripts/verify-phase0-package.py $(OUTPUT_DIR) --repo-root $(REPO_ROOT)
-	@cd $(OUTPUT_DIR) && zip -q -r ../../NXless-phase0.zip .
+	@cd $(OUTPUT_DIR) && zip -q -r $(PACKAGE_ZIP) .
 	@echo "Created output/NXless-phase0.zip"
 
 clean:
-	@rm -rf $(BUILD) $(TARGET).elf $(TARGET).nso $(TARGET).npdm $(TARGET).nsp $(OUTPUT_DIR) $(REPO_ROOT)/output/NXless-phase0.zip
+	@rm -rf $(BUILD) $(TARGET).elf $(TARGET).nso $(TARGET).npdm $(TARGET).nsp $(OUTPUT_DIR) $(PACKAGE_ZIP)
 
 else
 
