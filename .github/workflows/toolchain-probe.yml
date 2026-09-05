@@ -6,11 +6,16 @@ on:
       - feat/phase0-bsd-mitm
     paths:
       - '.github/workflows/toolchain-probe.yml'
+      - '.gitignore'
+      - 'Makefile'
       - 'sysmodule/**'
       - 'common/**'
       - 'config/**'
       - 'docs/recovery.md'
       - 'third_party/locks/switch-toolchain.lock'
+      - 'scripts/phase0_build.py'
+      - 'scripts/phase0_hardware.py'
+      - 'scripts/phase0_hw/**'
       - 'scripts/verify-switch-toolchain.sh'
       - 'scripts/verify-atmosphere-source.sh'
       - 'scripts/verify-phase0-package.py'
@@ -57,25 +62,25 @@ jobs:
           )
 
           "$PACMAN" -Sy --noconfirm
-          mkdir -p toolchain-cache
-          "$PACMAN" -S --downloadonly --noconfirm --cachedir "$PWD/toolchain-cache" "${packages[@]}"
+          mkdir -p .cache/toolchain evidence
+          "$PACMAN" -S --downloadonly --noconfirm --cachedir "$PWD/.cache/toolchain" "${packages[@]}"
 
-          cat > toolchain-package-sha256.expected <<'EOF'
-          0d61ad4946eb1080c6e645c41f0cfaac0a2eba5fec88426fef8f03363e933b5a  toolchain-cache/devkita64-binutils-2.46.0-1-x86_64.pkg.tar.zst
-          8192b899f0a5fcfe10d11fa63a631b45310c0c8f0b98d88c7c283c16e9d6b0fa  toolchain-cache/devkita64-gcc-16.1.0-1-x86_64.pkg.tar.zst
-          fc97ba1009a94b68f8714c3cc548ef697ca82687b72fe0c05a7ca3df81beb53e  toolchain-cache/devkita64-newlib-4.6.0.20260123-4-any.pkg.tar.zst
-          66f100490dafe506495ee083bc932aa2c2f231b5dafaa2b203d1832389b700e9  toolchain-cache/devkitA64-r30-1-any.pkg.tar.zst
-          c6950bdf8e4b872ece492225368c03e633776329548a7494f91aa1e8f239cd8a  toolchain-cache/libnx-4.12.0-1-any.pkg.tar.zst
+          cat > .cache/toolchain-package-sha256.expected <<'EOF'
+          0d61ad4946eb1080c6e645c41f0cfaac0a2eba5fec88426fef8f03363e933b5a  .cache/toolchain/devkita64-binutils-2.46.0-1-x86_64.pkg.tar.zst
+          8192b899f0a5fcfe10d11fa63a631b45310c0c8f0b98d88c7c283c16e9d6b0fa  .cache/toolchain/devkita64-gcc-16.1.0-1-x86_64.pkg.tar.zst
+          fc97ba1009a94b68f8714c3cc548ef697ca82687b72fe0c05a7ca3df81beb53e  .cache/toolchain/devkita64-newlib-4.6.0.20260123-4-any.pkg.tar.zst
+          66f100490dafe506495ee083bc932aa2c2f231b5dafaa2b203d1832389b700e9  .cache/toolchain/devkitA64-r30-1-any.pkg.tar.zst
+          c6950bdf8e4b872ece492225368c03e633776329548a7494f91aa1e8f239cd8a  .cache/toolchain/libnx-4.12.0-1-any.pkg.tar.zst
           EOF
-          sed -i 's/^          //' toolchain-package-sha256.expected
-          sha256sum --check --strict toolchain-package-sha256.expected
+          sed -i 's/^          //' .cache/toolchain-package-sha256.expected
+          sha256sum --check --strict .cache/toolchain-package-sha256.expected
 
-          find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 \
+          find .cache/toolchain -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 \
             | sort -z \
             | xargs -0 -r sha256sum \
-            > toolchain-package-sha256.txt
-          test -s toolchain-package-sha256.txt
-          cat toolchain-package-sha256.txt
+            > evidence/toolchain-package-sha256.txt
+          test -s evidence/toolchain-package-sha256.txt
+          cat evidence/toolchain-package-sha256.txt
 
       - name: Install only the hashed local package archives
         shell: bash
@@ -87,7 +92,7 @@ jobs:
             PACMAN=pacman
           fi
 
-          mapfile -d '' archives < <(find toolchain-cache -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 | sort -z)
+          mapfile -d '' archives < <(find .cache/toolchain -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 | sort -z)
           test "${#archives[@]}" -eq 5
           "$PACMAN" -U --noconfirm "${archives[@]}"
 
@@ -111,25 +116,26 @@ jobs:
           test "$(git -C third_party/Atmosphere rev-parse HEAD)" = '5388824be146a89619e8d641acd64599cf1c5f62'
           scripts/verify-atmosphere-source.sh third_party/Atmosphere
 
-      - name: Cross-build Phase 0 Switch package
+      - name: Run canonical clean Phase 0 acceptance build
         shell: bash
         env:
           NXLESS_ATMOSPHERE_ROOT: ${{ github.workspace }}/third_party/Atmosphere
         run: |
           set -euo pipefail
-          make switch-package
+          RECORD="evidence/phase0-exact-${GITHUB_SHA}.json"
+          make phase0-build RECORD="$RECORD" BUILDER=github-actions NO_FETCH_ATMOSPHERE=1
+          test -f "$RECORD"
           test -f output/NXless-phase0.zip
-          python3 scripts/verify-phase0-package.py output/phase0 --repo-root .
-          sha256sum output/NXless-phase0.zip | tee phase0-package-sha256.txt
+          sha256sum output/NXless-phase0.zip | tee evidence/phase0-package-sha256.txt
 
       - name: Upload toolchain and build evidence
-        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: exact-r30-switch-build-${{ github.sha }}
           path: |
-            toolchain-package-sha256.txt
-            phase0-package-sha256.txt
+            evidence/toolchain-package-sha256.txt
+            evidence/phase0-package-sha256.txt
+            evidence/phase0-exact-${{ github.sha }}.json
             output/NXless-phase0.zip
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
