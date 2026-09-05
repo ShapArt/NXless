@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from .schema import (
-    DEVKITA64_PACKAGE_PATTERN,
+    ATMOSPHERE_FULL_COMMIT,
     GCC_VERSION_PREFIX,
     LIBNX_PACKAGE,
     REQUIRED_COUNTS,
@@ -33,7 +33,8 @@ def render_markdown(record: dict[str, Any], level: str = "phase0") -> str:
         f"- NXless commit: `{build.get('nxless_commit', '')}`",
         f"- Package SHA-256: `{build.get('package_sha256', '')}`",
         f"- HOS: {build.get('hos', '')}",
-        f"- Atmosphère: {build.get('atmosphere_version', '')} / `{build.get('atmosphere_commit', '')}`",
+        f"- Atmosphère target: {build.get('atmosphere_version', '')} / `{build.get('atmosphere_commit', '')}`",
+        f"- observed Atmosphère commit: `{build.get('observed_atmosphere_commit', '')}`",
         f"- libnx source: {build.get('libnx_version', '')} / `{build.get('libnx_commit', '')}`",
         f"- admitted devkitA64: {build.get('devkitA64', '')}",
         f"- observed devkitA64 package: `{build.get('observed_devkitA64_package', '')}`",
@@ -72,6 +73,7 @@ def synthetic_complete_record() -> dict[str, Any]:
             "observed_devkitA64_package": "devkitA64 r30-1",
             "observed_gcc_version": GCC_VERSION_PREFIX,
             "observed_libnx_package": LIBNX_PACKAGE,
+            "observed_atmosphere_commit": ATMOSPHERE_FULL_COMMIT,
         }
     )
     hv = record["host_verification"]
