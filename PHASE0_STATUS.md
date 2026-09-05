@@ -1,7 +1,7 @@
 # NXless Phase 0 status
 
 **Remote Phase 0 branch:** `feat/phase0-bsd-mitm`  
-**Current remote head:** `5f98d8b7ebe4adf8cc7b0f6370a390e3fb0816b9`  
+**Current remote head:** `c7848208f8b0f6e1707f57b524bc79f3e961e271`  
 **Remote implementation line:** published and CI-verified  
 **Hardware gate:** NOT COMPLETE
 
@@ -20,14 +20,15 @@ The initial source publication was imported through GitHub's Git Data API becaus
 - Title ID collision guard for `0100000000004E58`: PASS;
 - machine-readable hardware recorder and tooling tests are present in the remote tree;
 - read-only `nxl:ctl`, fail-open boot/recovery policy and bounded socket state are covered by host/source-contract tests;
-- complete GPL-2.0 license text is present in the repository.
+- GPL-2.0 license text is restored from the verified archived repository copy; current Git blob SHA is `a74e6f549c685a933a9a49c5cbc0bf9f95352934`.
 
 ## Review findings already fixed
 
 - control service publication now happens only after its thread resources are ready;
 - `nxl:ctl` runtime status uses one atomic packed snapshot for `(RuntimeMode, last_internal_error)`, removing a cross-thread data race and torn-state window;
 - SD recovery/config reads avoid aborting libstratosphere mount initialization and use result-returning libnx FS calls;
-- exhausted MITM client-context IDs fall back to Atmosphere raw-forward instead of creating an untracked context 0 session.
+- exhausted MITM client-context IDs fall back to Atmosphere raw-forward instead of creating an untracked context 0 session;
+- preflight evidence reports distinguish host-only preflight success from a full Phase 0 hardware PASS.
 
 ## Hard gates before Phase 1A
 
@@ -35,10 +36,6 @@ The initial source publication was imported through GitHub's Git Data API becaus
 - GitHub issue #3: pass the original-Switch hardware acceptance matrix.
 
 Both issues must be closed with evidence before SOCKS5 TCP implementation starts.
-
-## License provenance note
-
-The remote repository contains the complete GPL-2.0 license text. A historical locally archived LICENSE copy has a different Git blob hash due to text-format/version provenance, so remote documentation must not claim byte-for-byte identity with that archived blob. The project licensing intent remains GPL-2.0-only.
 
 ## Required before merge / Phase 1
 
