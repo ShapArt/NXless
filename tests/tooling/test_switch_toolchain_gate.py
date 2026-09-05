@@ -34,8 +34,13 @@ class SwitchToolchainGateTests(unittest.TestCase):
                 )
             env = os.environ.copy()
             env["DEVKITPRO"] = str(devkitpro)
-            env["PATH"] = str(bin_dir) + os.pathsep + "/usr/bin:/bin"
-            return subprocess.run([str(SCRIPT)], env=env, capture_output=True, text=True)
+            # Keep package-manager discovery hermetic. Invoking Bash explicitly means
+            # the verifier can run with a PATH containing only our test doubles, so a
+            # host/container /usr/bin/pacman can never satisfy a negative test case.
+            env["PATH"] = str(bin_dir)
+            return subprocess.run(
+                ["/bin/bash", str(SCRIPT)], env=env, capture_output=True, text=True
+            )
 
     def test_accepts_exact_r30_and_libnx_4120(self):
         result = self.run_gate("libnx 4.12.0-1")
