@@ -31,7 +31,7 @@ Host verification is green in GitHub Actions, including the canonical Catch2 sui
 
 Track the hard gates in GitHub issues **#2** (exact Switch build) and **#3** (hardware acceptance).
 
-See `PHASE0_STATUS.md`, `docs/architecture.md`, `docs/security-model.md`, and `docs/phase-0-acceptance.md` for details.
+See `PHASE0_STATUS.md`, `docs/architecture.md`, `docs/security-model.md`, `docs/phase-0-acceptance.md`, and `docs/hardware-testing.md` for details.
 
 ## License
 
