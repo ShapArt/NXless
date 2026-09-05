@@ -67,7 +67,7 @@ verify-source:
 
 nxless-build: $(ATMOSPHERE_LIBSTRATOSPHERE)
 	@[ -d $(BUILD) ] || mkdir -p $(BUILD)
-	@$(MAKE) --no-print-directory -C $(SYSMODULE_DIR)/$(BUILD) -f $(THIS_MAKEFILE) NXLESS_ATMOSPHERE_ROOT=$(NXLESS_ATMOSPHERE_ROOT)
+	@$(MAKE) --no-print-directory -C $(SYSMODULE_DIR)/$(BUILD) -f $(THIS_MAKEFILE) NXLESS_ATMOSPHERE_ROOT=$(NXLESS_ATMOSPHERE_ROOT) all
 	@test -f $(TARGET).nsp
 
 dist: all
