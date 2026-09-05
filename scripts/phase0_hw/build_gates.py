@@ -13,6 +13,7 @@ from .schema import _git, sha256_file
 _TOOLCHAIN_IDENTITY_RE = re.compile(
     r'^switch toolchain: devkit_pkg="([^"]+)"; gcc="([^"]+)"; libnx_pkg="([^"]+)"$'
 )
+_ATMOSPHERE_IDENTITY_RE = re.compile(r'^Atmosphere source: commit="([0-9a-f]{40})"$')
 
 
 def _parse_toolchain_identity(output: str) -> tuple[str, str, str] | None:
@@ -20,6 +21,14 @@ def _parse_toolchain_identity(output: str) -> tuple[str, str, str] | None:
         match = _TOOLCHAIN_IDENTITY_RE.fullmatch(line.strip())
         if match is not None:
             return match.group(1), match.group(2), match.group(3)
+    return None
+
+
+def _parse_atmosphere_identity(output: str) -> str | None:
+    for line in reversed(output.splitlines()):
+        match = _ATMOSPHERE_IDENTITY_RE.fullmatch(line.strip())
+        if match is not None:
+            return match.group(1)
     return None
 
 
@@ -68,6 +77,11 @@ def record_switch_build(
         return updated, blockers
     observed_devkit, observed_gcc, observed_libnx = observed
 
+    observed_atmosphere = _parse_atmosphere_identity(str(pf.get("atmosphere_output", "")))
+    if observed_atmosphere is None:
+        blockers.append("Atmosphere source gate output does not contain machine-readable observed identity")
+        return updated, blockers
+
     package = repo_root / "output" / "NXless-phase0.zip"
     try:
         package.unlink(missing_ok=True)
@@ -106,6 +120,7 @@ def record_switch_build(
             "observed_devkitA64_package": observed_devkit,
             "observed_gcc_version": observed_gcc,
             "observed_libnx_package": observed_libnx,
+            "observed_atmosphere_commit": observed_atmosphere,
             "toolchain_gate_output": str(pf.get("toolchain_output", ""))[-2000:],
             "atmosphere_gate_output": str(pf.get("atmosphere_output", ""))[-2000:],
         }
