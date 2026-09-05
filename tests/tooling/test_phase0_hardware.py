@@ -37,6 +37,7 @@ class Phase0HardwareTests(unittest.TestCase):
         self.assertEqual(build["observed_devkitA64_package"], "")
         self.assertEqual(build["observed_gcc_version"], "")
         self.assertEqual(build["observed_libnx_package"], "")
+        self.assertEqual(build["observed_atmosphere_commit"], "")
 
     def test_phase0_rejects_mismatched_observed_switch_toolchain_identity(self):
         cases = (
@@ -54,6 +55,11 @@ class Phase0HardwareTests(unittest.TestCase):
                 "observed_libnx_package",
                 "libnx 4.11.1-1",
                 "observed libnx package must be libnx 4.12.0-1",
+            ),
+            (
+                "observed_atmosphere_commit",
+                "5388824aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "observed Atmosphere commit does not match admitted 1.11.2 source",
             ),
         )
         for field, bad_value, expected_error in cases:
