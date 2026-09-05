@@ -23,6 +23,7 @@ public:
     BsdForwardResult SocketExempt(int domain, int type, int protocol) noexcept;
     BsdForwardResult Accept(int fd, std::span<std::byte> address, std::uint32_t& out_addrlen) noexcept;
     BsdForwardResult Close(int fd) noexcept;
+    BsdForwardResult DuplicateSocket(int fd) noexcept;
 
     socket::ClientContextId ContextId() const noexcept { return id_; }
     bool RegistryAttached() const noexcept { return attached_; }

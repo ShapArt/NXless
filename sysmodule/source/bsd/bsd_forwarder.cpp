@@ -12,6 +12,12 @@ struct SocketInput {
     std::int32_t protocol;
 };
 
+struct DuplicateSocketInput {
+    std::int32_t sockfd;
+    std::uint32_t padding;
+    std::uint64_t reserved;
+};
+
 struct RetErrno {
     std::int32_t ret;
     std::int32_t bsd_errno;
@@ -24,6 +30,7 @@ struct AcceptOutput {
 };
 
 static_assert(sizeof(SocketInput) == 12);
+static_assert(sizeof(DuplicateSocketInput) == 16);
 static_assert(sizeof(RetErrno) == 8);
 static_assert(sizeof(AcceptOutput) == 12);
 
@@ -82,6 +89,19 @@ BsdForwardResult BsdForwarder::Close(const int fd) noexcept {
     const std::int32_t input = fd;
     RetErrno output{-1, 0};
     IpcDispatch request{26, Bytes(input), MutableBytes(output), {}, 0};
+
+    const std::uint32_t platform_result = transport_.Dispatch(request);
+    if (platform_result != 0) {
+        return {platform_result, {-1, 0}};
+    }
+
+    return {0, {output.ret, output.ret < 0 ? output.bsd_errno : 0}};
+}
+
+BsdForwardResult BsdForwarder::DuplicateSocket(const int fd) noexcept {
+    const DuplicateSocketInput input{fd, 0, 0};
+    RetErrno output{-1, 0};
+    IpcDispatch request{27, Bytes(input), MutableBytes(output), {}, 0};
 
     const std::uint32_t platform_result = transport_.Dispatch(request);
     if (platform_result != 0) {

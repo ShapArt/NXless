@@ -90,5 +90,22 @@ ams::Result BsdMitmService::Close(
     R_SUCCEED();
 }
 
+ams::Result BsdMitmService::DuplicateSocket(
+    ams::sf::Out<s32> out_ret,
+    ams::sf::Out<s32> out_errno,
+    const s32 fd,
+    const u32 padding,
+    const u64 reserved) noexcept {
+    AMS_UNUSED(padding, reserved);
+    R_UNLESS(!session_.RawPassthroughOnly(), ams::sm::mitm::ResultShouldForwardToSession());
+    const auto result = session_.DuplicateSocket(fd);
+    if (!result.PlatformSucceeded()) {
+        return ams::Result(result.platform_result);
+    }
+    *out_ret = static_cast<s32>(result.bsd.ret);
+    *out_errno = result.bsd.bsd_errno;
+    R_SUCCEED();
+}
+
 } // namespace nxless::sys::bsd
 #endif
