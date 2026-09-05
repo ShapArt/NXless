@@ -5,6 +5,7 @@
 #include <nxless/sys/bsd/bsd_mitm_server.hpp>
 #include <nxless/sys/bsd/hos_22_5_0/bsd_ipc_adapter.hpp>
 namespace nxless::sys::bsd {
+namespace hos = ::ams::hos;
 class BsdMitmService : public ams::sf::MitmServiceImplBase {
 public:
     BsdMitmService(std::shared_ptr<::Service>&& forward,const ams::sm::MitmProcessInfo& client);

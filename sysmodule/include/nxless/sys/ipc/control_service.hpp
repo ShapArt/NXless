@@ -5,6 +5,7 @@
 #include <nxless/ipc/control_state.hpp>
 
 namespace nxless::sys::ipc {
+namespace hos = ::ams::hos;
 inline constexpr const char* kControlServiceName="nxl:ctl";
 class ControlService {
 public:
