@@ -14,6 +14,10 @@ endif
 
 include $(STRATOSPHERE_MK)
 
+# GCC 16.1 LTO misdiagnoses Atmosphere's stack-backed UnmanagedServiceObject as a heap delete.
+# Keep the diagnostic visible, but do not let this one upstream warning become fatal under -Werror.
+ATMOSPHERE_SETTINGS += -Wno-error=free-nonheap-object
+
 ATMOSPHERE_LIBSTRATOSPHERE := $(ATMOSPHERE_LIBRARIES_DIR)/libstratosphere/$(ATMOSPHERE_LIBRARY_DIR)/libstratosphere.a
 
 TARGET      := nxless-sys
