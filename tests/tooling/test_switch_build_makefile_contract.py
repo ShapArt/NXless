@@ -37,6 +37,12 @@ class SwitchBuildMakefileContractTests(unittest.TestCase):
             text,
         )
 
+    def test_dist_writes_release_zip_to_repository_output_directory(self):
+        text = MAKEFILE.read_text(encoding="utf-8")
+        self.assertIn("PACKAGE_ZIP := $(REPO_ROOT)/output/NXless-phase0.zip", text)
+        self.assertIn("zip -q -r $(PACKAGE_ZIP) .", text)
+        self.assertNotIn("../../NXless-phase0.zip", text)
+
     def test_container_build_marks_the_checkout_as_git_safe(self):
         text = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('git config --global --add safe.directory "$PWD"', text)
