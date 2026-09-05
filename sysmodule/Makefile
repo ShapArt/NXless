@@ -57,17 +57,18 @@ export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib) \
                    $(foreach dir,$(AMS_LIBDIRS),-L$(dir)/$(ATMOSPHERE_LIBRARY_DIR))
 export BUILD_EXEFS_SRC := $(TOPDIR)/$(EXEFS_SRC)
 
-.PHONY: all clean dist verify-source
+.PHONY: all clean dist verify-source nxless-build
 
-all: verify-source $(ATMOSPHERE_LIBSTRATOSPHERE) $(BUILD)
+all: verify-source $(ATMOSPHERE_LIBSTRATOSPHERE) nxless-build
 
 verify-source:
 	@$(REPO_ROOT)/scripts/verify-atmosphere-source.sh $(NXLESS_ATMOSPHERE_ROOT)
 	@$(REPO_ROOT)/scripts/verify-switch-toolchain.sh
 
-$(BUILD): $(ATMOSPHERE_LIBSTRATOSPHERE)
-	@[ -d $@ ] || mkdir -p $@
+nxless-build: $(ATMOSPHERE_LIBSTRATOSPHERE)
+	@[ -d $(BUILD) ] || mkdir -p $(BUILD)
 	@$(MAKE) --no-print-directory -C $(SYSMODULE_DIR)/$(BUILD) -f $(THIS_MAKEFILE) NXLESS_ATMOSPHERE_ROOT=$(NXLESS_ATMOSPHERE_ROOT)
+	@test -f $(TARGET).nsp
 
 dist: all
 	@rm -rf $(OUTPUT_DIR)
