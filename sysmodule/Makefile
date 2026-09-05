@@ -14,6 +14,8 @@ endif
 
 include $(STRATOSPHERE_MK)
 
+ATMOSPHERE_LIBSTRATOSPHERE := $(ATMOSPHERE_LIBRARIES_DIR)/libstratosphere/$(ATMOSPHERE_LIBRARY_DIR)/libstratosphere.a
+
 TARGET      := nxless-sys
 BUILD       := build
 SOURCES     := source source/boot source/bsd source/bsd/hos_22_5_0 source/config source/ipc source/platform \
@@ -23,6 +25,10 @@ INCLUDES    := include ../common/include
 APP_JSON    := $(SYSMODULE_DIR)/config/exefs.nsp.json
 TITLE_ID    := 0100000000004E58
 OUTPUT_DIR  := $(REPO_ROOT)/output/phase0
+
+$(ATMOSPHERE_LIBSTRATOSPHERE):
+	@$(MAKE) --no-print-directory -C $(ATMOSPHERE_LIBRARIES_DIR)/libstratosphere nx_release
+	@test -f $@
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 
@@ -53,13 +59,13 @@ export BUILD_EXEFS_SRC := $(TOPDIR)/$(EXEFS_SRC)
 
 .PHONY: all clean dist verify-source
 
-all: verify-source $(BUILD)
+all: verify-source $(ATMOSPHERE_LIBSTRATOSPHERE) $(BUILD)
 
 verify-source:
 	@$(REPO_ROOT)/scripts/verify-atmosphere-source.sh $(NXLESS_ATMOSPHERE_ROOT)
 	@$(REPO_ROOT)/scripts/verify-switch-toolchain.sh
 
-$(BUILD):
+$(BUILD): $(ATMOSPHERE_LIBSTRATOSPHERE)
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(SYSMODULE_DIR)/$(BUILD) -f $(THIS_MAKEFILE) NXLESS_ATMOSPHERE_ROOT=$(NXLESS_ATMOSPHERE_ROOT)
 
@@ -85,7 +91,7 @@ all: $(OUTPUT).nsp
 $(OUTPUT).nsp: $(OUTPUT).nso $(OUTPUT).npdm
 $(OUTPUT).nso: $(OUTPUT).elf
 $(OUTPUT).elf: $(OFILES)
-$(OFILES): $(ATMOSPHERE_LIBRARIES_DIR)/libstratosphere/$(ATMOSPHERE_LIBRARY_DIR)/libstratosphere.a
+$(OFILES): $(ATMOSPHERE_LIBSTRATOSPHERE)
 
 %.npdm: $(APP_JSON)
 	@npdmtool $< $@
