@@ -9,6 +9,7 @@ on:
       - 'sysmodule/**'
       - 'common/**'
       - 'config/**'
+      - 'docs/recovery.md'
       - 'third_party/locks/switch-toolchain.lock'
       - 'scripts/verify-switch-toolchain.sh'
       - 'scripts/verify-atmosphere-source.sh'

@@ -14,11 +14,11 @@ The hardware acceptance matrix requires 10 successful cold boots in this state b
 
 ## Full sysmodule removal
 
-If the recovery flag cannot be used, power the console fully off and remove:
+If the recovery flag cannot be used, power off the console completely before removing:
 
 `/atmosphere/contents/0100000000004E58`
 
-Do not modify NAND or Nintendo system titles. Removing the NXless contents directory must restore the pre-NXless boot/network path.
+Do not modify NAND or Nintendo system titles. After removal and reboot, verify that the console reaches HOME and normal networking works without NXless before restoring or changing anything else.
 
 ## Config errors
 
@@ -26,4 +26,4 @@ Do not modify NAND or Nintendo system titles. Removing the NXless contents direc
 
 ## Evidence
 
-Recovery results are recorded with `scripts/phase0_hardware.py` and are part of GitHub issue #3. Anecdotal “it boots” testing is not sufficient to close the hardware gate.
+Recovery results are recorded with `scripts/phase0_hardware.py` and are part of GitHub issue #3. Until the full issue #3 hardware acceptance matrix passes, the Phase 0 build is not hardware-proven. Anecdotal “it boots” testing is not sufficient to close the hardware gate.
