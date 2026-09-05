@@ -10,6 +10,19 @@ from typing import Any, Callable
 from .gate_common import _run_gate, preflight
 from .schema import _git, sha256_file
 
+_TOOLCHAIN_IDENTITY_RE = re.compile(
+    r'^switch toolchain: devkit_pkg="([^"]+)"; gcc="([^"]+)"; libnx_pkg="([^"]+)"$'
+)
+
+
+def _parse_toolchain_identity(output: str) -> tuple[str, str, str] | None:
+    for line in reversed(output.splitlines()):
+        match = _TOOLCHAIN_IDENTITY_RE.fullmatch(line.strip())
+        if match is not None:
+            return match.group(1), match.group(2), match.group(3)
+    return None
+
+
 def record_switch_build(
     record: dict[str, Any],
     repo_root: Path,
@@ -49,6 +62,12 @@ def record_switch_build(
         blockers.append("Atmosphere source gate is not PASS")
         return updated, blockers
 
+    observed = _parse_toolchain_identity(str(pf.get("toolchain_output", "")))
+    if observed is None:
+        blockers.append("Switch toolchain gate output does not contain machine-readable observed identity")
+        return updated, blockers
+    observed_devkit, observed_gcc, observed_libnx = observed
+
     package = repo_root / "output" / "NXless-phase0.zip"
     try:
         package.unlink(missing_ok=True)
@@ -84,6 +103,9 @@ def record_switch_build(
             "switch_toolchain_verified": True,
             "atmosphere_source_verified": True,
             "clean_switch_build": True,
+            "observed_devkitA64_package": observed_devkit,
+            "observed_gcc_version": observed_gcc,
+            "observed_libnx_package": observed_libnx,
             "toolchain_gate_output": str(pf.get("toolchain_output", ""))[-2000:],
             "atmosphere_gate_output": str(pf.get("atmosphere_output", ""))[-2000:],
         }
