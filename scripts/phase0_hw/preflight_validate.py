@@ -3,11 +3,21 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .schema import ATMOSPHERE_VERSION, ATMOSPHERE_COMMIT, LIBNX_VERSION, LIBNX_COMMIT, DEVKITA64, HOS, PROGRAM_ID
+from .schema import (
+    ATMOSPHERE_VERSION,
+    ATMOSPHERE_COMMIT,
+    DEVKITA64,
+    HOS,
+    LIBNX_VERSION,
+    LIBNX_COMMIT,
+    PROGRAM_ID,
+    SCHEMA_VERSION,
+)
+
 
 def validate_preflight(record: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    if record.get("schema_version") != 1:
+    if record.get("schema_version") != SCHEMA_VERSION:
         errors.append("unsupported or missing schema_version")
         return errors
 
