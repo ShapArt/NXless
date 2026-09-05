@@ -20,12 +20,26 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
         self.assertTrue(WORKFLOW.is_file(), f"missing workflow: {WORKFLOW}")
         return WORKFLOW.read_text(encoding="utf-8")
 
-    def test_probe_is_isolated_and_uses_pinned_official_bootstrap_image(self):
+    def test_probe_uses_pinned_official_bootstrap_image(self):
         text = self._text()
         self.assertIn("workflow_dispatch:", text)
-        self.assertIn("paths:\n      - '.github/workflows/toolchain-probe.yml'", text)
         self.assertIn(f"image: {PINNED_IMAGE}", text)
         self.assertIn("permissions:\n  contents: read", text)
+
+    def test_probe_runs_for_switch_build_critical_changes(self):
+        text = self._text()
+        required_paths = (
+            "'.github/workflows/toolchain-probe.yml'",
+            "'sysmodule/**'",
+            "'common/**'",
+            "'config/**'",
+            "'third_party/locks/switch-toolchain.lock'",
+            "'scripts/verify-switch-toolchain.sh'",
+            "'scripts/verify-atmosphere-source.sh'",
+            "'scripts/verify-phase0-package.py'",
+        )
+        for path in required_paths:
+            self.assertIn(f"      - {path}", text)
 
     def test_probe_never_performs_a_rolling_system_upgrade(self):
         text = self._text()
