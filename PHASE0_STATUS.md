@@ -12,6 +12,7 @@ The initial source publication was imported through GitHub's Git Data API becaus
 
 - GitHub Actions Portable Phase 0 gates: PASS;
 - GitHub Actions canonical Catch2 host suite: PASS;
+- machine-readable Phase 0 preflight job: PASS;
 - offline ASan/UBSan suite: PASS;
 - strict production compile with exceptions/RTTI disabled and warnings-as-errors: PASS;
 - package policy: PASS;
@@ -29,7 +30,8 @@ The initial source publication was imported through GitHub's Git Data API becaus
 - SD recovery/config reads avoid aborting libstratosphere mount initialization and use result-returning libnx FS calls;
 - exhausted MITM client-context IDs fall back to Atmosphere raw-forward instead of creating an untracked context 0 session;
 - preflight evidence reports distinguish host-only preflight success from a full Phase 0 hardware PASS;
-- the repository license was repaired after a malformed import and the missing GPL sections are present again.
+- the repository license was repaired after a malformed import and the missing GPL sections are present again;
+- the 64 KiB `SdConfigStore` workspace was moved out of the 64 KiB main-thread stack into static storage, and the SD filesystem/libnx FS service are released immediately after boot config loading. A source-contract test first failed on the old stack allocation and now passes in GitHub Actions.
 
 ## Hard gates before Phase 1A
 
