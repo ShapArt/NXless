@@ -24,6 +24,12 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Persist container Git trust
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$PWD"
+
       - name: Download and verify exact Phase 0 toolchain packages
         shell: bash
         run: |
