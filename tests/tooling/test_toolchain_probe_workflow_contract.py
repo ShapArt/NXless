@@ -73,13 +73,41 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
         self.assertGreaterEqual(text.count("-name '*.pkg.tar.zst'"), 2)
         self.assertNotIn("-name '*.pkg.tar.*'", text)
 
-    def test_probe_fetches_exact_atmosphere_and_attempts_real_switch_package(self):
+    def test_probe_fetches_exact_atmosphere_and_produces_switch_package(self):
         text = self._text()
         self.assertIn("tag 1.11.2", text)
         self.assertIn(ATMOSPHERE_COMMIT, text)
         self.assertIn("scripts/verify-atmosphere-source.sh", text)
-        self.assertIn("make switch-package", text)
         self.assertIn("output/NXless-phase0.zip", text)
+
+    def test_probe_uses_clean_canonical_phase0_acceptance_pipeline(self):
+        text = self._text()
+        required_paths = (
+            "'Makefile'",
+            "'.gitignore'",
+            "'scripts/phase0_build.py'",
+            "'scripts/phase0_hardware.py'",
+            "'scripts/phase0_hw/**'",
+        )
+        for path in required_paths:
+            self.assertIn(f"      - {path}", text)
+
+        required_markers = (
+            ".cache/toolchain",
+            ".cache/toolchain-package-sha256.expected",
+            "evidence/toolchain-package-sha256.txt",
+            "make phase0-build",
+            'RECORD="evidence/phase0-exact-${GITHUB_SHA}.json"',
+            "evidence/phase0-package-sha256.txt",
+            "evidence/phase0-exact-${{ github.sha }}.json",
+            "if-no-files-found: error",
+        )
+        for marker in required_markers:
+            self.assertIn(marker, text)
+
+        self.assertNotIn("make switch-package", text)
+        self.assertNotIn("mkdir -p toolchain-cache", text)
+        self.assertNotIn("cat > toolchain-package-sha256.expected", text)
 
 
 if __name__ == "__main__":
