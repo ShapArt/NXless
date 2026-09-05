@@ -20,6 +20,16 @@ class SwitchBuildMakefileContractTests(unittest.TestCase):
         self.assertIn("$(OFILES): $(ATMOSPHERE_LIBSTRATOSPHERE)", text)
         self.assertNotIn("$(OFILES): $(ATMOSPHERE_LIBRARIES_DIR)/libstratosphere/$(ATMOSPHERE_LIBRARY_DIR)/libstratosphere.a", text)
 
+    def test_outer_build_uses_a_phony_action_not_the_build_directory_as_the_target(self):
+        text = MAKEFILE.read_text(encoding="utf-8")
+        self.assertIn(".PHONY: all clean dist verify-source nxless-build", text)
+        self.assertIn("all: verify-source $(ATMOSPHERE_LIBSTRATOSPHERE) nxless-build", text)
+        self.assertIn("nxless-build: $(ATMOSPHERE_LIBSTRATOSPHERE)", text)
+        self.assertIn("-C $(SYSMODULE_DIR)/$(BUILD) -f $(THIS_MAKEFILE)", text)
+        self.assertIn("test -f $(TARGET).nsp", text)
+        self.assertNotIn("all: verify-source $(ATMOSPHERE_LIBSTRATOSPHERE) $(BUILD)", text)
+        self.assertNotIn("$(BUILD): $(ATMOSPHERE_LIBSTRATOSPHERE)", text)
+
     def test_container_build_marks_the_checkout_as_git_safe(self):
         text = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('git config --global --add safe.directory "$PWD"', text)
