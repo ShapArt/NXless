@@ -13,7 +13,7 @@ spec.loader.exec_module(phase0)
 class Phase0HardwareTests(unittest.TestCase):
     def test_new_record_is_pinned_and_incomplete(self):
         record = phase0.new_record(Path(__file__).resolve().parents[2])
-        self.assertEqual(record["schema_version"], 1)
+        self.assertEqual(record["schema_version"], 2)
         self.assertEqual(record["build"]["atmosphere_commit"], "5388824")
         self.assertEqual(record["build"]["libnx_commit"], "7644c9b26099aa2d2145bc72a21ee24190e92085")
         self.assertEqual(record["build"]["libnx_version"], "4.12.0")
@@ -23,6 +23,14 @@ class Phase0HardwareTests(unittest.TestCase):
         errors = phase0.validate_record(record, level="phase0")
         self.assertTrue(any("disable.flag cold boots" in e for e in errors))
         self.assertTrue(any("transparent MITM cold boots" in e for e in errors))
+
+    def test_schema_v1_is_rejected(self):
+        record = phase0.synthetic_complete_record()
+        record["schema_version"] = 1
+        self.assertEqual(
+            phase0.validate_record(record, level="preflight"),
+            ["unsupported or missing schema_version"],
+        )
 
     def test_new_record_leaves_observed_switch_toolchain_identity_empty(self):
         build = phase0.new_record(Path(__file__).resolve().parents[2])["build"]
