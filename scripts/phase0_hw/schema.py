@@ -10,6 +10,7 @@ from typing import Any
 SCHEMA_VERSION = 2
 ATMOSPHERE_VERSION = "1.11.2"
 ATMOSPHERE_COMMIT = "5388824"
+ATMOSPHERE_FULL_COMMIT = "5388824be146a89619e8d641acd64599cf1c5f62"
 LIBNX_VERSION = "4.12.0"
 LIBNX_COMMIT = "7644c9b26099aa2d2145bc72a21ee24190e92085"
 LIBNX_PACKAGE = "libnx 4.12.0-1"
@@ -80,6 +81,7 @@ def new_record(repo_root: Path) -> dict[str, Any]:
             "observed_devkitA64_package": "",
             "observed_gcc_version": "",
             "observed_libnx_package": "",
+            "observed_atmosphere_commit": "",
         },
         "host_verification": {
             "canonical_host_test": "",
