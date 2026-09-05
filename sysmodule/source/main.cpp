@@ -20,9 +20,14 @@ constinit bool g_sm_ready = false;
 constinit bool g_fs_ready = false;
 constinit bool g_sd_fs_open = false;
 constinit FsFileSystem g_sd_fs{};
+constinit nxless::sys::config::SdConfigStore g_sd_config_store{};
 constinit nxless::ipc::ControlState g_control_state{};
 constinit bool g_disable_flag_present = false;
 constinit nxless::sys::platform::HosVersion g_hos{};
+
+nxless::sys::config::SdConfigStore& GetSdConfigStore() noexcept {
+    return g_sd_config_store;
+}
 
 nxless::diagnostics::RingLogger& GetLogger() noexcept {
     static nxless::diagnostics::RingLogger logger;
@@ -162,8 +167,13 @@ void Main() {
 
     nxless::sys::config::SdLoadResult sd{};
     if (g_sd_fs_open) {
-        nxless::sys::config::SdConfigStore store;
-        sd = store.Load(&g_sd_fs);
+        sd = GetSdConfigStore().Load(&g_sd_fs);
+        fsFsClose(&g_sd_fs);
+        g_sd_fs_open = false;
+    }
+    if (g_fs_ready) {
+        fsExit();
+        g_fs_ready = false;
     }
 
     g_hos = nxless::sys::platform::QueryHosVersion();
