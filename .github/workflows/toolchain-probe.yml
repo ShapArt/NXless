@@ -19,6 +19,8 @@ on:
       - 'scripts/verify-switch-toolchain.sh'
       - 'scripts/verify-atmosphere-source.sh'
       - 'scripts/verify-phase0-package.py'
+      - 'tests/tooling/**'
+      - 'tools/hardware_probe/**'
   workflow_dispatch:
 
 permissions:
