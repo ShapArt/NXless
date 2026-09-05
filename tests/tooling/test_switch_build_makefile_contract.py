@@ -30,6 +30,13 @@ class SwitchBuildMakefileContractTests(unittest.TestCase):
         self.assertNotIn("all: verify-source $(ATMOSPHERE_LIBSTRATOSPHERE) $(BUILD)", text)
         self.assertNotIn("$(BUILD): $(ATMOSPHERE_LIBSTRATOSPHERE)", text)
 
+    def test_recursive_build_explicitly_selects_inner_all_target(self):
+        text = MAKEFILE.read_text(encoding="utf-8")
+        self.assertIn(
+            "-C $(SYSMODULE_DIR)/$(BUILD) -f $(THIS_MAKEFILE) NXLESS_ATMOSPHERE_ROOT=$(NXLESS_ATMOSPHERE_ROOT) all",
+            text,
+        )
+
     def test_container_build_marks_the_checkout_as_git_safe(self):
         text = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn('git config --global --add safe.directory "$PWD"', text)
