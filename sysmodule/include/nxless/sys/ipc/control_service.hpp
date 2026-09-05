@@ -3,6 +3,7 @@
 #include <stratosphere.hpp>
 #include <nxless/ipc/control_runtime.hpp>
 #include <nxless/ipc/control_state.hpp>
+#include <nxless/sys/platform/compatibility.hpp>
 
 namespace nxless::sys::ipc {
 namespace hos = ::ams::hos;
