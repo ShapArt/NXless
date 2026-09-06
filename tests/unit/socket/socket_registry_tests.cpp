@@ -70,6 +70,22 @@ TEST_CASE("socket tags are isolated by client and fd", "[socket_registry]") {
     REQUIRE(registry.Find(2, 5)->tag == InterceptionTag::Transparent);
 }
 
+TEST_CASE("client high-water survives session churn", "[socket_registry]") {
+    SocketRegistry registry;
+    REQUIRE(registry.ClientHighWaterMark() == 0);
+    REQUIRE(registry.RegisterClient(100));
+    REQUIRE(registry.RegisterClient(200));
+    REQUIRE(registry.ClientHighWaterMark() == 2);
+
+    registry.UnregisterClient(100);
+    registry.UnregisterClient(200);
+    REQUIRE(registry.ActiveClientCount() == 0);
+    REQUIRE(registry.ClientHighWaterMark() == 2);
+
+    REQUIRE(registry.RegisterClient(300));
+    REQUIRE(registry.ClientHighWaterMark() == 2);
+}
+
 TEST_CASE("client context zero is reserved for passthrough and cannot enter registry", "[socket_registry]") {
     SocketRegistry registry;
     REQUIRE_FALSE(registry.RegisterClient(0));
