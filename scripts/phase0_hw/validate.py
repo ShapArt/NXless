@@ -5,6 +5,7 @@ from typing import Any
 from .preflight_validate import validate_preflight
 from .hardware_validate import validate_hardware
 
+
 def validate_record(record: dict[str, Any], level: str = "phase0") -> list[str]:
     if level not in {"preflight", "hardware", "phase0"}:
         raise ValueError(f"unknown validation level: {level}")
@@ -12,6 +13,11 @@ def validate_record(record: dict[str, Any], level: str = "phase0") -> list[str]:
     if level == "preflight":
         return errors
     validate_hardware(record, errors)
+    network = record.get("network", {})
+    for proto in ("tcp", "udp"):
+        target = str(network.get(proto, {}).get("target", "")).strip()
+        if not target:
+            errors.append(f"{proto.upper()} network target is missing")
     if level == "hardware":
         return errors
     review = record.get("review", {})
