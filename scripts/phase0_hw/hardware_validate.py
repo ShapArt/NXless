@@ -12,6 +12,8 @@ from .schema import (
     HOS,
     LIBNX_PACKAGE,
     PROBE_MAX_CONCURRENT,
+    REGISTRY_MAX_CLIENTS,
+    REGISTRY_MAX_SOCKETS,
     REQUIRED_COUNTS,
 )
 
@@ -163,6 +165,16 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
         errors.append("private heap exceeds Phase 0 target of 6 MiB")
     if isinstance(private_heap, int) and private_heap > 8 * 1024 * 1024:
         errors.append("private heap exceeds hard 8 MiB architecture-review ceiling")
+    peak_clients = resources.get("peak_clients")
+    if isinstance(peak_clients, int) and peak_clients > REGISTRY_MAX_CLIENTS:
+        errors.append(
+            f"resources.peak_clients exceeds SocketRegistry limit of {REGISTRY_MAX_CLIENTS}"
+        )
+    peak_sockets = resources.get("peak_sockets")
+    if isinstance(peak_sockets, int) and peak_sockets > REGISTRY_MAX_SOCKETS:
+        errors.append(
+            f"resources.peak_sockets exceeds SocketRegistry limit of {REGISTRY_MAX_SOCKETS}"
+        )
     if resources.get("registry_leak_detected") is not False:
         errors.append("registry leak check is not explicitly false")
     if resources.get("unbounded_growth_detected") is not False:
