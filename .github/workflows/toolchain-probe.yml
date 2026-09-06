@@ -130,6 +130,15 @@ jobs:
           test -f output/NXless-phase0.zip
           sha256sum output/NXless-phase0.zip | tee evidence/phase0-package-sha256.txt
 
+      - name: Build test-only hardware probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          make -C tools/hardware_probe clean
+          make -C tools/hardware_probe
+          test -f tools/hardware_probe/NXlessProbe.nro
+          sha256sum tools/hardware_probe/NXlessProbe.nro | tee evidence/phase0-probe-sha256.txt
+
       - name: Upload toolchain and build evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
@@ -137,7 +146,9 @@ jobs:
           path: |
             evidence/toolchain-package-sha256.txt
             evidence/phase0-package-sha256.txt
+            evidence/phase0-probe-sha256.txt
             evidence/phase0-exact-${{ github.sha }}.json
             output/NXless-phase0.zip
+            tools/hardware_probe/NXlessProbe.nro
           if-no-files-found: error
           retention-days: 30
