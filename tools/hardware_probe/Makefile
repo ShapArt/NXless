@@ -1,0 +1,56 @@
+.SUFFIXES:
+
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
+endif
+
+TOPDIR ?= $(CURDIR)
+APP_TITLE   := NXless Phase 0 Probe
+APP_AUTHOR  := NXless contributors
+APP_VERSION := 0.0.1
+include $(DEVKITPRO)/libnx/switch_rules
+
+TARGET      := NXlessProbe
+BUILD       := build
+SOURCES     := source
+DATA        := data
+INCLUDES    := include ../../common/include
+NO_ICON     := 1
+
+ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+CFLAGS := -g -Wall -Wextra -Werror -O2 -ffunction-sections $(ARCH) $(DEFINES)
+CFLAGS += $(INCLUDE) -D__SWITCH__
+# GCC 16.1 warns on designated/partial initializers inside pinned libnx 4.12.0 headers.
+# Keep the warning visible, but do not promote this upstream diagnostic to an error.
+CXXFLAGS := $(CFLAGS) -Wno-error=missing-field-initializers -std=gnu++20 -fno-rtti -fno-exceptions
+ASFLAGS := -g $(ARCH)
+LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LIBS := -lnx
+LIBDIRS := $(PORTLIBS) $(LIBNX)
+
+ifneq ($(BUILD),$(notdir $(CURDIR)))
+export OUTPUT := $(CURDIR)/$(TARGET)
+export TOPDIR := $(CURDIR)
+export VPATH := $(foreach dir,$(SOURCES),$(CURDIR)/$(dir))
+export DEPSDIR := $(CURDIR)/$(BUILD)
+CPPFILES := $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+export LD := $(CXX)
+export OFILES := $(CPPFILES:.cpp=.o)
+export INCLUDE := $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) $(foreach dir,$(LIBDIRS),-I$(dir)/include) -I$(CURDIR)/$(BUILD)
+export LIBPATHS := $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
+export NROFLAGS += --nacp=$(CURDIR)/$(TARGET).nacp
+.PHONY: all clean $(BUILD)
+all: $(BUILD)
+$(BUILD):
+	@[ -d $@ ] || mkdir -p $@
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+clean:
+	@rm -rf $(BUILD) $(TARGET).nro $(TARGET).nacp $(TARGET).elf
+else
+DEPENDS := $(OFILES:.o=.d)
+.PHONY: all
+all: $(OUTPUT).nro
+$(OUTPUT).nro: $(OUTPUT).elf $(OUTPUT).nacp
+$(OUTPUT).elf: $(OFILES)
+-include $(DEPENDS)
+endif

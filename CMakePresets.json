@@ -1,0 +1,23 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 31, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "host-debug",
+      "displayName": "NXless host debug + sanitizers",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/host-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NXLESS_BUILD_TESTS": "ON",
+        "NXLESS_ENABLE_SANITIZERS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {"name": "host-debug", "configurePreset": "host-debug"}
+  ],
+  "testPresets": [
+    {"name": "host-debug", "configurePreset": "host-debug", "output": {"outputOnFailure": true}}
+  ]
+}

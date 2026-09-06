@@ -1,0 +1,13 @@
+# Exact Phase 0 Switch toolchain package bytes observed from the official devkitPro repositories.
+# Bootstrap image is only used to obtain pacman/repository configuration; the five package archives below are independently SHA-256 pinned before installation.
+bootstrap.image=devkitpro/devkita64:20260219@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
+devkitA64.package=devkitA64-r30-1-any.pkg.tar.zst
+devkitA64.sha256=66f100490dafe506495ee083bc932aa2c2f231b5dafaa2b203d1832389b700e9
+binutils.package=devkita64-binutils-2.46.0-1-x86_64.pkg.tar.zst
+binutils.sha256=0d61ad4946eb1080c6e645c41f0cfaac0a2eba5fec88426fef8f03363e933b5a
+gcc.package=devkita64-gcc-16.1.0-1-x86_64.pkg.tar.zst
+gcc.sha256=8192b899f0a5fcfe10d11fa63a631b45310c0c8f0b98d88c7c283c16e9d6b0fa
+newlib.package=devkita64-newlib-4.6.0.20260123-4-any.pkg.tar.zst
+newlib.sha256=fc97ba1009a94b68f8714c3cc548ef697ca82687b72fe0c05a7ca3df81beb53e
+libnx.package=libnx-4.12.0-1-any.pkg.tar.zst
+libnx.sha256=c6950bdf8e4b872ece492225368c03e633776329548a7494f91aa1e8f239cd8a

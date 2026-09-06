@@ -1,0 +1,171 @@
+name: Exact devkitA64 r30 toolchain probe
+
+on:
+  push:
+    branches:
+      - feat/phase0-bsd-mitm
+    paths:
+      - '.github/workflows/toolchain-probe.yml'
+      - '.gitignore'
+      - 'Makefile'
+      - 'sysmodule/**'
+      - 'common/**'
+      - 'config/**'
+      - 'docs/recovery.md'
+      - 'docs/hardware-testing.md'
+      - 'third_party/locks/switch-toolchain.lock'
+      - 'scripts/phase0_build.py'
+      - 'scripts/phase0_hardware.py'
+      - 'scripts/phase0_hw/**'
+      - 'scripts/verify-switch-toolchain.sh'
+      - 'scripts/verify-atmosphere-source.sh'
+      - 'scripts/verify-phase0-package.py'
+      - 'tests/tooling/**'
+      - 'tools/hardware_probe/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-r30-probe:
+    name: Probe exact r30 packages and Switch build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: devkitpro/devkita64:20260219@sha256:1fc388c3a0d34bd2045a6dadcb1020e069d5f876a187fd705de14b4440c00282
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Persist container Git trust
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$PWD"
+
+      - name: Download and verify exact Phase 0 toolchain packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v dkp-pacman >/dev/null 2>&1; then
+            PACMAN=dkp-pacman
+          else
+            PACMAN=pacman
+          fi
+
+          packages=(
+            'devkitA64=r30-1'
+            'devkita64-binutils=2.46.0-1'
+            'devkita64-gcc=16.1.0-1'
+            'devkita64-newlib=4.6.0.20260123-4'
+            'libnx=4.12.0-1'
+          )
+
+          "$PACMAN" -Sy --noconfirm
+          mkdir -p .cache/toolchain evidence
+          "$PACMAN" -S --downloadonly --noconfirm --cachedir "$PWD/.cache/toolchain" "${packages[@]}"
+
+          cat > .cache/toolchain-package-sha256.expected <<'EOF'
+          0d61ad4946eb1080c6e645c41f0cfaac0a2eba5fec88426fef8f03363e933b5a  .cache/toolchain/devkita64-binutils-2.46.0-1-x86_64.pkg.tar.zst
+          8192b899f0a5fcfe10d11fa63a631b45310c0c8f0b98d88c7c283c16e9d6b0fa  .cache/toolchain/devkita64-gcc-16.1.0-1-x86_64.pkg.tar.zst
+          fc97ba1009a94b68f8714c3cc548ef697ca82687b72fe0c05a7ca3df81beb53e  .cache/toolchain/devkita64-newlib-4.6.0.20260123-4-any.pkg.tar.zst
+          66f100490dafe506495ee083bc932aa2c2f231b5dafaa2b203d1832389b700e9  .cache/toolchain/devkitA64-r30-1-any.pkg.tar.zst
+          c6950bdf8e4b872ece492225368c03e633776329548a7494f91aa1e8f239cd8a  .cache/toolchain/libnx-4.12.0-1-any.pkg.tar.zst
+          EOF
+          sed -i 's/^          //' .cache/toolchain-package-sha256.expected
+          sha256sum --check --strict .cache/toolchain-package-sha256.expected
+
+          find .cache/toolchain -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 \
+            | sort -z \
+            | xargs -0 -r sha256sum \
+            > evidence/toolchain-package-sha256.txt
+          test -s evidence/toolchain-package-sha256.txt
+          cat evidence/toolchain-package-sha256.txt
+
+      - name: Install only the hashed local package archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v dkp-pacman >/dev/null 2>&1; then
+            PACMAN=dkp-pacman
+          else
+            PACMAN=pacman
+          fi
+
+          mapfile -d '' archives < <(find .cache/toolchain -maxdepth 1 -type f -name '*.pkg.tar.zst' -print0 | sort -z)
+          test "${#archives[@]}" -eq 5
+          "$PACMAN" -U --noconfirm "${archives[@]}"
+
+          test "$("$PACMAN" -Q devkitA64)" = 'devkitA64 r30-1'
+          test "$("$PACMAN" -Q devkita64-binutils)" = 'devkita64-binutils 2.46.0-1'
+          test "$("$PACMAN" -Q devkita64-gcc)" = 'devkita64-gcc 16.1.0-1'
+          test "$("$PACMAN" -Q devkita64-newlib)" = 'devkita64-newlib 4.6.0.20260123-4'
+          test "$("$PACMAN" -Q libnx)" = 'libnx 4.12.0-1'
+          scripts/verify-switch-toolchain.sh
+
+      - name: Fetch exact Atmosphere 1.11.2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf third_party/Atmosphere
+          mkdir -p third_party/Atmosphere
+          git init third_party/Atmosphere
+          git -C third_party/Atmosphere remote add origin https://github.com/Atmosphere-NX/Atmosphere.git
+          git -C third_party/Atmosphere fetch --depth 1 origin tag 1.11.2
+          git -C third_party/Atmosphere checkout --detach FETCH_HEAD
+          test "$(git -C third_party/Atmosphere rev-parse HEAD)" = '5388824be146a89619e8d641acd64599cf1c5f62'
+          scripts/verify-atmosphere-source.sh third_party/Atmosphere
+
+      - name: Run canonical clean Phase 0 acceptance build
+        shell: bash
+        env:
+          NXLESS_ATMOSPHERE_ROOT: ${{ github.workspace }}/third_party/Atmosphere
+        run: |
+          set -euo pipefail
+          RECORD="evidence/phase0-exact-${GITHUB_SHA}.json"
+          make phase0-build RECORD="$RECORD" BUILDER=github-actions NO_FETCH_ATMOSPHERE=1
+          test -f "$RECORD"
+          test -f output/NXless-phase0.zip
+          sha256sum output/NXless-phase0.zip | tee evidence/phase0-package-sha256.txt
+
+      - name: Build and bind test-only hardware probe
+        shell: bash
+        env:
+          NXLESS_ATMOSPHERE_ROOT: ${{ github.workspace }}/third_party/Atmosphere
+        run: |
+          set -euo pipefail
+          RECORD="evidence/phase0-exact-${GITHUB_SHA}.json"
+          python3 scripts/phase0_hardware.py record-probe-build --repo . --record "$RECORD"
+          test -f tools/hardware_probe/NXlessProbe.nro
+          sha256sum tools/hardware_probe/NXlessProbe.nro | tee evidence/phase0-probe-sha256.txt
+          python3 - "$RECORD" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          record = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          probe = pathlib.Path("tools/hardware_probe/NXlessProbe.nro")
+          observed = hashlib.sha256(probe.read_bytes()).hexdigest()
+          build = record["build"]
+          assert build["probe_source_commit"] == record["build"]["nxless_commit"]
+          assert build["probe_sha256"] == observed
+          assert build["clean_probe_build"] is True
+          PY
+
+      - name: Upload toolchain and build evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: exact-r30-switch-build-${{ github.sha }}
+          path: |
+            evidence/toolchain-package-sha256.txt
+            evidence/phase0-package-sha256.txt
+            evidence/phase0-probe-sha256.txt
+            evidence/phase0-exact-${{ github.sha }}.json
+            output/NXless-phase0.zip
+            tools/hardware_probe/NXlessProbe.nro
+          if-no-files-found: error
+          retention-days: 30

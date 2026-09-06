@@ -1,0 +1,10 @@
+.worktrees/
+build/
+out/
+.cache/
+CMakeUserPresets.json
+
+__pycache__/
+*.pyc
+third_party/Atmosphere/
+evidence/
