@@ -32,6 +32,7 @@ public:
     bool SetTag(ClientContextId client, int fd, InterceptionTag tag) noexcept;
 
     std::size_t ActiveClientCount() const noexcept;
+    std::size_t ClientHighWaterMark() const noexcept;
     std::size_t ActiveSocketCount() const noexcept;
     std::size_t ClientSocketCount(ClientContextId client) const noexcept;
     std::size_t HighWaterMark() const noexcept;
@@ -55,6 +56,7 @@ private:
     mutable std::mutex mutex_;
     std::array<ClientSlot, kMaxClients> clients_{};
     std::array<SocketSlot, kMaxSockets> sockets_{};
+    std::size_t client_high_water_mark_{0};
     std::size_t active_socket_count_{0};
     std::size_t high_water_mark_{0};
     SocketGeneration next_generation_{1};

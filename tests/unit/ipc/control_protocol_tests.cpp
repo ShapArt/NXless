@@ -20,6 +20,7 @@ TEST_CASE("phase0 control DTOs are trivial standard layout", "[ipc]") {
     STATIC_REQUIRE(sizeof(ipc::VersionInfo) == 12);
     STATIC_REQUIRE(sizeof(ipc::CompatibilityInfo) == 16);
     STATIC_REQUIRE(sizeof(ipc::RuntimeStatus) == 32);
+    STATIC_REQUIRE(ipc::kControlApiMinor == 1);
 }
 
 TEST_CASE("major API mismatch is rejected without mutation", "[ipc]") {
@@ -37,12 +38,15 @@ TEST_CASE("runtime status snapshot reads portable counters", "[ipc]") {
     socket::SocketRegistry registry;
     diagnostics::RingLogger logger;
     REQUIRE(registry.RegisterClient(7));
+    REQUIRE(registry.RegisterClient(8));
+    registry.UnregisterClient(8);
     REQUIRE(registry.OnSocketCreated(7, 3));
     logger.Push(diagnostics::LogLevel::Warning, "sanitized");
 
     const auto status = status::BuildRuntimeStatus(
         ipc::RuntimeMode::DisconnectedPassthrough, false, registry, logger, -17);
     REQUIRE(status.active_clients == 1);
+    REQUIRE(status.client_high_water == 2);
     REQUIRE(status.active_sockets == 1);
     REQUIRE(status.socket_high_water == 1);
     REQUIRE(status.disable_flag_present == 0);

@@ -9,7 +9,7 @@
 namespace nxless::ipc {
 
 inline constexpr std::uint32_t kControlApiMajor = 1;
-inline constexpr std::uint32_t kControlApiMinor = 0;
+inline constexpr std::uint32_t kControlApiMinor = 1;
 inline constexpr std::uint32_t kMaxRecentLogEvents = 128;
 
 enum class RuntimeMode : std::uint8_t {
@@ -41,7 +41,7 @@ struct CompatibilityInfo {
 struct RuntimeStatus {
     RuntimeMode mode;
     std::uint8_t disable_flag_present;
-    std::uint16_t reserved;
+    std::uint16_t client_high_water;
     std::uint32_t active_clients;
     std::uint32_t active_sockets;
     std::uint32_t socket_high_water;

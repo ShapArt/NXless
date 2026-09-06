@@ -217,8 +217,8 @@ void PrintStatus(const nxless::ipc::VersionInfo& version,
                 compatibility.hos_major, compatibility.hos_minor, compatibility.hos_patch,
                 compatibility.bsd_mitm_supported);
     std::printf("mode=%s disable.flag=%u\n", nxless::probe::RuntimeModeName(status.mode), status.disable_flag_present);
-    std::printf("clients=%u sockets=%u high-water=%u dropped-logs=%llu last-error=%d\n",
-                status.active_clients, status.active_sockets, status.socket_high_water,
+    std::printf("clients=%u client-high-water=%u sockets=%u socket-high-water=%u dropped-logs=%llu last-error=%d\n",
+                status.active_clients, status.client_high_water, status.active_sockets, status.socket_high_water,
                 static_cast<unsigned long long>(status.log_dropped), status.last_internal_error);
 }
 

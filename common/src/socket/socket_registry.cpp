@@ -51,6 +51,9 @@ bool SocketRegistry::RegisterClient(const ClientContextId client) noexcept {
     }
     it->active = true;
     it->id = client;
+    const auto active_clients = static_cast<std::size_t>(
+        std::count_if(clients_.cbegin(), clients_.cend(), [](const ClientSlot& slot) { return slot.active; }));
+    client_high_water_mark_ = std::max(client_high_water_mark_, active_clients);
     return true;
 }
 
@@ -136,6 +139,11 @@ std::size_t SocketRegistry::ActiveClientCount() const noexcept {
     return static_cast<std::size_t>(std::count_if(clients_.cbegin(), clients_.cend(), [](const ClientSlot& slot) {
         return slot.active;
     }));
+}
+
+std::size_t SocketRegistry::ClientHighWaterMark() const noexcept {
+    std::scoped_lock lock(mutex_);
+    return client_high_water_mark_;
 }
 
 std::size_t SocketRegistry::ActiveSocketCount() const noexcept {
