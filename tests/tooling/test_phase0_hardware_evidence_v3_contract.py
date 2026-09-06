@@ -81,6 +81,16 @@ class Phase0HardwareEvidenceV3ContractTests(unittest.TestCase):
         if not any("16" in error for error in phase0.validate_record(excessive, level="hardware")):
             missing.append("probe concurrency upper bound")
 
+        excessive_clients = phase0.synthetic_complete_record()
+        excessive_clients["resources"]["peak_clients"] = 65
+        if not any("peak_clients" in error and "64" in error for error in phase0.validate_record(excessive_clients, level="hardware")):
+            missing.append("registry client high-water upper bound")
+
+        excessive_sockets = phase0.synthetic_complete_record()
+        excessive_sockets["resources"]["peak_sockets"] = 513
+        if not any("peak_sockets" in error and "512" in error for error in phase0.validate_record(excessive_sockets, level="hardware")):
+            missing.append("registry socket high-water upper bound")
+
         self.assertEqual(missing, [])
 
 
