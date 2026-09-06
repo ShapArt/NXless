@@ -111,6 +111,26 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("mkdir -p toolchain-cache", text)
         self.assertNotIn("cat > toolchain-package-sha256.expected", text)
 
+    def test_probe_archives_test_only_hardware_probe_after_clean_acceptance(self):
+        text = self._text()
+        required_markers = (
+            "Build test-only hardware probe",
+            "make -C tools/hardware_probe clean",
+            "make -C tools/hardware_probe",
+            "test -f tools/hardware_probe/NXlessProbe.nro",
+            "sha256sum tools/hardware_probe/NXlessProbe.nro | tee evidence/phase0-probe-sha256.txt",
+            "evidence/phase0-probe-sha256.txt",
+            "tools/hardware_probe/NXlessProbe.nro",
+        )
+        for marker in required_markers:
+            self.assertIn(marker, text)
+
+        self.assertLess(
+            text.index("make phase0-build"),
+            text.index("make -C tools/hardware_probe clean"),
+            "test-only probe must be built only after the clean canonical Phase 0 acceptance build",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
