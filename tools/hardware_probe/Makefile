@@ -20,7 +20,9 @@ NO_ICON     := 1
 ARCH := -march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
 CFLAGS := -g -Wall -Wextra -Werror -O2 -ffunction-sections $(ARCH) $(DEFINES)
 CFLAGS += $(INCLUDE) -D__SWITCH__
-CXXFLAGS := $(CFLAGS) -std=gnu++20 -fno-rtti -fno-exceptions
+# GCC 16.1 warns on designated/partial initializers inside pinned libnx 4.12.0 headers.
+# Keep the warning visible, but do not promote this upstream diagnostic to an error.
+CXXFLAGS := $(CFLAGS) -Wno-error=missing-field-initializers -std=gnu++20 -fno-rtti -fno-exceptions
 ASFLAGS := -g $(ARCH)
 LDFLAGS := -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 LIBS := -lnx
