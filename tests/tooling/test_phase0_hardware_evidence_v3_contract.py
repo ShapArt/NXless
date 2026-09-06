@@ -91,6 +91,11 @@ class Phase0HardwareEvidenceV3ContractTests(unittest.TestCase):
         if not any("peak_sockets" in error and "512" in error for error in phase0.validate_record(excessive_sockets, level="hardware")):
             missing.append("registry socket high-water upper bound")
 
+        missing_target = phase0.synthetic_complete_record()
+        missing_target["network"]["tcp"]["target"] = ""
+        if not any("tcp" in error.lower() and "target" in error.lower() for error in phase0.validate_record(missing_target, level="hardware")):
+            missing.append("network target validation")
+
         self.assertEqual(missing, [])
 
 
