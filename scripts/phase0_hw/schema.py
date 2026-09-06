@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 ATMOSPHERE_VERSION = "1.11.2"
 ATMOSPHERE_COMMIT = "5388824"
 ATMOSPHERE_FULL_COMMIT = "5388824be146a89619e8d641acd64599cf1c5f62"
@@ -19,6 +19,7 @@ DEVKITA64_PACKAGE_PATTERN = r"devkitA64 r30(?:-1)?"
 GCC_VERSION_PREFIX = "16.1.0"
 HOS = "22.5.0"
 PROGRAM_ID = "0100000000004E58"
+PROBE_MAX_CONCURRENT = 16
 
 REQUIRED_COUNTS = {
     "disable_flag_boots": 10,
@@ -27,6 +28,7 @@ REQUIRED_COUNTS = {
     "wifi_cycle": 10,
     "ap_change": 5,
     "app_launch_close": 20,
+    "session_admission": 2,
 }
 
 
@@ -59,12 +61,13 @@ def _attempt(ok: bool = True, ctl_status: str = "") -> dict[str, Any]:
 
 def new_record(repo_root: Path) -> dict[str, Any]:
     commit = _git(repo_root, "rev-parse", "HEAD") or "UNKNOWN"
-    package_sha = ""
     return {
         "schema_version": SCHEMA_VERSION,
         "build": {
             "nxless_commit": commit,
-            "package_sha256": package_sha,
+            "package_sha256": "",
+            "probe_source_commit": "",
+            "probe_sha256": "",
             "build_date_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "builder": "",
             "atmosphere_version": ATMOSPHERE_VERSION,
@@ -78,6 +81,7 @@ def new_record(repo_root: Path) -> dict[str, Any]:
             "switch_toolchain_verified": False,
             "atmosphere_source_verified": False,
             "clean_switch_build": False,
+            "clean_probe_build": False,
             "observed_devkitA64_package": "",
             "observed_gcc_version": "",
             "observed_libnx_package": "",
@@ -104,9 +108,9 @@ def new_record(repo_root: Path) -> dict[str, Any]:
         },
         "console": {
             "model": "",
-            "hos": HOS,
-            "atmosphere_version": ATMOSPHERE_VERSION,
-            "atmosphere_commit": ATMOSPHERE_COMMIT,
+            "hos": "",
+            "atmosphere_version": "",
+            "atmosphere_commit": "",
             "sd_filesystem_capacity": "",
             "network": "",
             "hbmenu_tcp_baseline": False,
@@ -133,10 +137,11 @@ def new_record(repo_root: Path) -> dict[str, Any]:
             "wifi_cycle": {"attempts": 0, "passes": 0},
             "ap_change": {"attempts": 0, "passes": 0},
             "airplane_wifi": {"attempts": 0, "passes": 0},
-            "wifi_ethernet": {"available": False, "attempts": 0, "passes": 0},
-            "ethernet_wifi": {"available": False, "attempts": 0, "passes": 0},
+            "wifi_ethernet": {"available": None, "attempts": 0, "passes": 0},
+            "ethernet_wifi": {"available": None, "attempts": 0, "passes": 0},
             "app_launch_close": {"attempts": 0, "passes": 0},
         },
+        "session_admission": {"attempts": []},
         "resources": {
             "private_heap_bytes": None,
             "peak_heap_bytes": None,
@@ -145,6 +150,10 @@ def new_record(repo_root: Path) -> dict[str, Any]:
             "handle_count": None,
             "registry_leak_detected": None,
             "unbounded_growth_detected": None,
+        },
+        "diagnostics": {
+            "recent_logs_secret_free": None,
+            "notes": "",
         },
         "failures": [],
         "review": {
@@ -186,7 +195,16 @@ def add_lifecycle_attempt(record: dict[str, Any], kind: str, *, passed: bool) ->
         raise ValueError(f"unknown lifecycle kind: {kind}")
     item = record["lifecycle"][kind]
     if "available" in item:
-        item["available"] = True
+        if item.get("available") is not True:
+            raise ValueError(f"lifecycle kind {kind} is not recorded as available")
     item["attempts"] = int(item.get("attempts", 0) or 0) + 1
     if passed:
         item["passes"] = int(item.get("passes", 0) or 0) + 1
+
+
+def append_session_admission(
+    record: dict[str, Any], *, completed: bool, sm_ack_abort: bool, notes: str = ""
+) -> None:
+    record["session_admission"]["attempts"].append(
+        {"completed": completed, "sm_ack_abort": sm_ack_abort, "notes": notes}
+    )

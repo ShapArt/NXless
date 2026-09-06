@@ -12,6 +12,7 @@ on:
       - 'common/**'
       - 'config/**'
       - 'docs/recovery.md'
+      - 'docs/hardware-testing.md'
       - 'third_party/locks/switch-toolchain.lock'
       - 'scripts/phase0_build.py'
       - 'scripts/phase0_hardware.py'
@@ -130,14 +131,30 @@ jobs:
           test -f output/NXless-phase0.zip
           sha256sum output/NXless-phase0.zip | tee evidence/phase0-package-sha256.txt
 
-      - name: Build test-only hardware probe
+      - name: Build and bind test-only hardware probe
         shell: bash
+        env:
+          NXLESS_ATMOSPHERE_ROOT: ${{ github.workspace }}/third_party/Atmosphere
         run: |
           set -euo pipefail
-          make -C tools/hardware_probe clean
-          make -C tools/hardware_probe
+          RECORD="evidence/phase0-exact-${GITHUB_SHA}.json"
+          python3 scripts/phase0_hardware.py record-probe-build --repo . --record "$RECORD"
           test -f tools/hardware_probe/NXlessProbe.nro
           sha256sum tools/hardware_probe/NXlessProbe.nro | tee evidence/phase0-probe-sha256.txt
+          python3 - "$RECORD" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          record = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+          probe = pathlib.Path("tools/hardware_probe/NXlessProbe.nro")
+          observed = hashlib.sha256(probe.read_bytes()).hexdigest()
+          build = record["build"]
+          assert build["probe_source_commit"] == record["build"]["nxless_commit"]
+          assert build["probe_sha256"] == observed
+          assert build["clean_probe_build"] is True
+          PY
 
       - name: Upload toolchain and build evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

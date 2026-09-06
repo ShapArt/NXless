@@ -11,6 +11,7 @@ from .schema import (
     GCC_VERSION_PREFIX,
     HOS,
     LIBNX_PACKAGE,
+    PROBE_MAX_CONCURRENT,
     REQUIRED_COUNTS,
 )
 
@@ -46,6 +47,8 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
         errors.append("Atmosphere source identity was not machine-verified")
     if build.get("clean_switch_build") is not True:
         errors.append("clean Switch build is not PASS")
+    if build.get("clean_probe_build") is not True:
+        errors.append("clean hardware probe build is not PASS")
 
     observed_devkit = str(build.get("observed_devkitA64_package", ""))
     if re.fullmatch(DEVKITA64_PACKAGE_PATTERN, observed_devkit) is None:
@@ -61,14 +64,24 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
     package_sha = build.get("package_sha256", "")
     if not re.fullmatch(r"[0-9a-f]{64}", package_sha):
         errors.append("build.package_sha256 must be 64 lowercase hex characters")
+    probe_sha = build.get("probe_sha256", "")
+    if not re.fullmatch(r"[0-9a-f]{64}", probe_sha):
+        errors.append("build.probe_sha256 must be 64 lowercase hex characters")
+    probe_commit = build.get("probe_source_commit", "")
+    if not re.fullmatch(r"[0-9a-f]{40}", str(probe_commit)):
+        errors.append("build.probe_source_commit must be a full 40-hex git commit")
+    elif probe_commit != build.get("nxless_commit"):
+        errors.append("hardware probe source commit does not match NXless package source commit")
 
     console = record.get("console", {})
     if console.get("hos") != HOS:
-        errors.append(f"console HOS must be {HOS}")
+        errors.append(f"console HOS must be observed as {HOS}")
     if console.get("atmosphere_version") != ATMOSPHERE_VERSION or console.get("atmosphere_commit") != ATMOSPHERE_COMMIT:
         errors.append("console Atmosphere identity does not match pinned stack")
     if not console.get("model"):
         errors.append("console model/revision is missing")
+    if not console.get("network"):
+        errors.append("console network description is missing")
     if console.get("hbmenu_tcp_baseline") is not True:
         errors.append("HBMenu TCP baseline is not PASS")
     if console.get("hbmenu_udp_baseline") is not True:
@@ -98,8 +111,13 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
         item = network.get(proto, {})
         if item.get("baseline_ok") is not True or item.get("nxless_ok") is not True:
             errors.append(f"{proto.upper()} baseline/NXless passthrough is not PASS")
-        if int(item.get("concurrent_sockets", 0) or 0) < 1:
+        concurrent = int(item.get("concurrent_sockets", 0) or 0)
+        if concurrent < 1:
             errors.append(f"{proto.upper()} concurrent socket count is missing")
+        elif concurrent > PROBE_MAX_CONCURRENT:
+            errors.append(
+                f"{proto.upper()} concurrent socket count exceeds NXlessProbe maximum of {PROBE_MAX_CONCURRENT}"
+            )
 
     apps = record.get("applications", [])
     good_apps = [a for a in apps if a.get("title") and a.get("baseline_ok") is True and a.get("nxless_ok") is True]
@@ -115,8 +133,23 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
     _check_counter(record, "airplane_wifi", 1, "airplane mode/Wi-Fi", errors)
     for key, label in (("wifi_ethernet", "Wi-Fi/Ethernet"), ("ethernet_wifi", "Ethernet/Wi-Fi")):
         item = record["lifecycle"].get(key, {})
-        if item.get("available"):
+        available = item.get("available")
+        if not isinstance(available, bool):
+            errors.append(f"{label} hardware availability was not recorded")
+        elif available:
             _check_counter(record, key, 1, label, errors)
+
+    admission_attempts = record.get("session_admission", {}).get("attempts", [])
+    required_admission = REQUIRED_COUNTS["session_admission"]
+    if len(admission_attempts) < required_admission:
+        errors.append(
+            f"repeated session admission requires at least {required_admission} attempts; recorded {len(admission_attempts)}"
+        )
+    for i, attempt in enumerate(admission_attempts, start=1):
+        if attempt.get("completed") is not True:
+            errors.append(f"session admission attempt {i}: completion is not PASS")
+        if attempt.get("sm_ack_abort") is not False:
+            errors.append(f"session admission attempt {i}: SM acknowledgement abort observed or unrecorded")
 
     resources = record.get("resources", {})
     for key in ("private_heap_bytes", "peak_heap_bytes", "peak_clients", "peak_sockets"):
@@ -134,6 +167,10 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
         errors.append("registry leak check is not explicitly false")
     if resources.get("unbounded_growth_detected") is not False:
         errors.append("unbounded growth check is not explicitly false")
+
+    diagnostics = record.get("diagnostics", {})
+    if diagnostics.get("recent_logs_secret_free") is not True:
+        errors.append("recent diagnostics/logs are not explicitly recorded as secret-free")
 
     if record.get("failures"):
         errors.append("record contains unresolved failures")

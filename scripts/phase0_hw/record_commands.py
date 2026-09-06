@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import argparse
 import json
-import os
-import threading
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
-from .echo import EchoServer
-from .record import add_lifecycle_attempt, append_boot, new_record, render_markdown, validate_record
+from .schema import append_boot, add_lifecycle_attempt, append_session_admission
+
 
 def _read_record(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -37,7 +34,7 @@ def _yes_no(value: str) -> bool:
     raise ValueError(value)
 
 
-def _cmd_record_boot(args: argparse.Namespace) -> int:
+def _cmd_record_boot(args) -> int:
     record = _read_record(args.record)
     append_boot(
         record,
@@ -54,7 +51,7 @@ def _cmd_record_boot(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_record_lifecycle(args: argparse.Namespace) -> int:
+def _cmd_record_lifecycle(args) -> int:
     record = _read_record(args.record)
     add_lifecycle_attempt(record, args.kind, passed=_pass_fail(args.result))
     _write_record_atomic(args.record, record)
@@ -63,7 +60,7 @@ def _cmd_record_lifecycle(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_record_network(args: argparse.Namespace) -> int:
+def _cmd_record_network(args) -> int:
     record = _read_record(args.record)
     item = record["network"][args.protocol]
     item.update(
@@ -79,7 +76,7 @@ def _cmd_record_network(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_record_app(args: argparse.Namespace) -> int:
+def _cmd_record_app(args) -> int:
     record = _read_record(args.record)
     record["applications"].append(
         {
@@ -95,7 +92,7 @@ def _cmd_record_app(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_record_directory_recovery(args: argparse.Namespace) -> int:
+def _cmd_record_directory_recovery(args) -> int:
     record = _read_record(args.record)
     record["recovery"]["directory_removal"] = {
         "powered_off": _pass_fail(args.powered_off),
@@ -108,7 +105,7 @@ def _cmd_record_directory_recovery(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_record_resources(args: argparse.Namespace) -> int:
+def _cmd_record_resources(args) -> int:
     record = _read_record(args.record)
     record["resources"].update(
         {
@@ -126,7 +123,7 @@ def _cmd_record_resources(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_record_review(args: argparse.Namespace) -> int:
+def _cmd_record_review(args) -> int:
     record = _read_record(args.record)
     record["review"] = {
         "reviewer": args.reviewer,
@@ -136,4 +133,71 @@ def _cmd_record_review(args: argparse.Namespace) -> int:
     }
     _write_record_atomic(args.record, record)
     print("Recorded independent review evidence")
+    return 0
+
+
+def _cmd_record_console(args) -> int:
+    record = _read_record(args.record)
+    record["console"].update(
+        {
+            "model": args.model,
+            "hos": args.hos,
+            "atmosphere_version": args.atmosphere_version,
+            "atmosphere_commit": args.atmosphere_commit,
+            "sd_filesystem_capacity": args.sd_filesystem_capacity,
+            "network": args.network,
+            "hbmenu_tcp_baseline": _pass_fail(args.hbmenu_tcp_baseline),
+            "hbmenu_udp_baseline": _pass_fail(args.hbmenu_udp_baseline),
+        }
+    )
+    _write_record_atomic(args.record, record)
+    print("Recorded observed console identity and HBMenu baseline")
+    return 0
+
+
+def _cmd_record_session_admission(args) -> int:
+    record = _read_record(args.record)
+    append_session_admission(
+        record,
+        completed=_pass_fail(args.result),
+        sm_ack_abort=_yes_no(args.sm_ack_abort),
+        notes=args.notes,
+    )
+    _write_record_atomic(args.record, record)
+    print(f"Recorded session-admission attempt #{len(record['session_admission']['attempts'])}")
+    return 0
+
+
+def _cmd_record_diagnostics(args) -> int:
+    record = _read_record(args.record)
+    record["diagnostics"].update(
+        {
+            "recent_logs_secret_free": _yes_no(args.recent_logs_secret_free),
+            "notes": args.notes,
+        }
+    )
+    _write_record_atomic(args.record, record)
+    print("Recorded sanitized diagnostics review")
+    return 0
+
+
+def _cmd_record_ethernet_availability(args) -> int:
+    record = _read_record(args.record)
+    available = _yes_no(args.available)
+    for kind in ("wifi_ethernet", "ethernet_wifi"):
+        item = record["lifecycle"][kind]
+        item["available"] = available
+        if not available:
+            item["attempts"] = 0
+            item["passes"] = 0
+    _write_record_atomic(args.record, record)
+    print(f"Recorded Ethernet transition hardware availability: {'yes' if available else 'no'}")
+    return 0
+
+
+def _cmd_record_failure(args) -> int:
+    record = _read_record(args.record)
+    record["failures"].append({"kind": args.kind, "details": args.details})
+    _write_record_atomic(args.record, record)
+    print(f"Recorded blocking failure: {args.kind}")
     return 0

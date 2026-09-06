@@ -13,20 +13,31 @@ spec.loader.exec_module(phase0)
 class Phase0HardwareTests(unittest.TestCase):
     def test_new_record_is_pinned_and_incomplete(self):
         record = phase0.new_record(Path(__file__).resolve().parents[2])
-        self.assertEqual(record["schema_version"], 2)
+        self.assertEqual(record["schema_version"], 3)
         self.assertEqual(record["build"]["atmosphere_commit"], "5388824")
         self.assertEqual(record["build"]["libnx_commit"], "7644c9b26099aa2d2145bc72a21ee24190e92085")
         self.assertEqual(record["build"]["libnx_version"], "4.12.0")
         self.assertEqual(record["build"]["devkitA64"], "r30")
         self.assertEqual(record["build"]["hos"], "22.5.0")
         self.assertIn("source_tree_clean", record["build"])
+        self.assertEqual(record["console"]["hos"], "")
+        self.assertEqual(record["console"]["atmosphere_version"], "")
         errors = phase0.validate_record(record, level="phase0")
         self.assertTrue(any("disable.flag cold boots" in e for e in errors))
         self.assertTrue(any("transparent MITM cold boots" in e for e in errors))
+        self.assertTrue(any("probe_sha256" in e for e in errors))
 
     def test_schema_v1_is_rejected(self):
         record = phase0.synthetic_complete_record()
         record["schema_version"] = 1
+        self.assertEqual(
+            phase0.validate_record(record, level="preflight"),
+            ["unsupported or missing schema_version"],
+        )
+
+    def test_schema_v2_is_rejected(self):
+        record = phase0.synthetic_complete_record()
+        record["schema_version"] = 2
         self.assertEqual(
             phase0.validate_record(record, level="preflight"),
             ["unsupported or missing schema_version"],
@@ -38,6 +49,9 @@ class Phase0HardwareTests(unittest.TestCase):
         self.assertEqual(build["observed_gcc_version"], "")
         self.assertEqual(build["observed_libnx_package"], "")
         self.assertEqual(build["observed_atmosphere_commit"], "")
+        self.assertEqual(build["probe_source_commit"], "")
+        self.assertEqual(build["probe_sha256"], "")
+        self.assertFalse(build["clean_probe_build"])
 
     def test_phase0_rejects_mismatched_observed_switch_toolchain_identity(self):
         cases = (
@@ -79,9 +93,11 @@ class Phase0HardwareTests(unittest.TestCase):
         record = phase0.synthetic_complete_record()
         record["build"]["nxless_commit"] = "short"
         record["build"]["package_sha256"] = "xyz"
+        record["build"]["probe_sha256"] = "xyz"
         errors = phase0.validate_record(record, level="phase0")
         self.assertIn("build.nxless_commit must be a full 40-hex git commit", errors)
         self.assertIn("build.package_sha256 must be 64 lowercase hex characters", errors)
+        self.assertIn("build.probe_sha256 must be 64 lowercase hex characters", errors)
 
     def test_duplicate_apps_do_not_satisfy_two_app_gate(self):
         record = phase0.synthetic_complete_record()
@@ -124,6 +140,7 @@ class Phase0HardwareTests(unittest.TestCase):
         text = phase0.render_markdown(record, level="phase0")
         self.assertIn("Phase 0 verdict: PASS", text)
         self.assertIn(record["build"]["nxless_commit"], text)
+        self.assertIn(record["build"]["probe_sha256"], text)
 
     def test_markdown_verdict_label_matches_validation_level(self):
         record = phase0.synthetic_complete_record()

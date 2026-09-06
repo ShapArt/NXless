@@ -16,6 +16,7 @@ from phase0_hw.gates import (
     collect_host_verification as _collect_host_verification_impl,
     preflight as _preflight_impl,
     record_switch_build as _record_switch_build_impl,
+    record_probe_build as _record_probe_build_impl,
 )
 from phase0_hw.record import (
     ATMOSPHERE_COMMIT,
@@ -56,11 +57,21 @@ def record_switch_build(record: dict[str, Any], repo_root: Path, *, builder: str
     )
 
 
+def record_probe_build(record: dict[str, Any], repo_root: Path):
+    return _record_probe_build_impl(
+        record,
+        repo_root,
+        git_fn=_git,
+        run_gate=_run_gate,
+    )
+
+
 def main() -> int:
     from phase0_hw.cli import main as cli_main
     return cli_main(
         collect_host_verification=collect_host_verification,
         record_switch_build=record_switch_build,
+        record_probe_build=record_probe_build,
         preflight=preflight,
     )
 

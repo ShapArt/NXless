@@ -126,3 +126,71 @@ def record_switch_build(
         }
     )
     return updated, blockers
+
+
+def record_probe_build(
+    record: dict[str, Any],
+    repo_root: Path,
+    *,
+    git_fn: Callable[..., str] = _git,
+    run_gate: Callable[..., tuple[str, str]] = _run_gate,
+) -> tuple[dict[str, Any], list[str]]:
+    updated = copy.deepcopy(record)
+    build = updated["build"]
+    blockers: list[str] = []
+    current_commit = git_fn(repo_root, "rev-parse", "HEAD")
+
+    if not re.fullmatch(r"[0-9a-f]{40}", current_commit):
+        blockers.append("current repository HEAD is not a full git commit")
+        return updated, blockers
+    if build.get("nxless_commit") != current_commit:
+        blockers.append("record commit does not match current HEAD")
+        return updated, blockers
+    if build.get("clean_switch_build") is not True or build.get("switch_toolchain_verified") is not True:
+        blockers.append("verified clean Switch package build must be recorded before probe build")
+        return updated, blockers
+
+    env = os.environ.copy()
+    toolchain_status, toolchain_output = run_gate(
+        [str(repo_root / "scripts" / "verify-switch-toolchain.sh")], env=env
+    )
+    if toolchain_status != "pass":
+        blockers.append("exact Switch toolchain gate is not PASS for probe build: " + toolchain_output[-1000:])
+        return updated, blockers
+
+    probe_dir = repo_root / "tools" / "hardware_probe"
+    clean_status, clean_output = run_gate(["make", "-C", str(probe_dir), "clean"], env=env)
+    if clean_status != "pass":
+        blockers.append("hardware probe clean failed: " + clean_output[-1000:])
+        return updated, blockers
+
+    relevant_status = git_fn(
+        repo_root,
+        "status",
+        "--porcelain",
+        "--",
+        "tools/hardware_probe",
+        "common/include/nxless/ipc/control_protocol.hpp",
+    )
+    if relevant_status:
+        blockers.append("hardware probe source inputs must be clean before probe build")
+        return updated, blockers
+
+    build_status, build_output = run_gate(["make", "-C", str(probe_dir)], env=env)
+    if build_status != "pass":
+        blockers.append("clean hardware probe build failed: " + build_output[-1000:])
+        return updated, blockers
+
+    probe = probe_dir / "NXlessProbe.nro"
+    if not probe.is_file():
+        blockers.append("clean hardware probe build did not produce NXlessProbe.nro")
+        return updated, blockers
+
+    build.update(
+        {
+            "probe_source_commit": current_commit,
+            "probe_sha256": sha256_file(probe),
+            "clean_probe_build": True,
+        }
+    )
+    return updated, blockers

@@ -5,7 +5,10 @@ from typing import Any
 
 from .schema import (
     ATMOSPHERE_FULL_COMMIT,
+    ATMOSPHERE_VERSION,
+    ATMOSPHERE_COMMIT,
     GCC_VERSION_PREFIX,
+    HOS,
     LIBNX_PACKAGE,
     REQUIRED_COUNTS,
     _attempt,
@@ -32,7 +35,9 @@ def render_markdown(record: dict[str, Any], level: str = "phase0") -> str:
         "",
         f"- NXless commit: `{build.get('nxless_commit', '')}`",
         f"- Package SHA-256: `{build.get('package_sha256', '')}`",
-        f"- HOS: {build.get('hos', '')}",
+        f"- Probe source commit: `{build.get('probe_source_commit', '')}`",
+        f"- NXlessProbe SHA-256: `{build.get('probe_sha256', '')}`",
+        f"- HOS target: {build.get('hos', '')}",
         f"- Atmosphère target: {build.get('atmosphere_version', '')} / `{build.get('atmosphere_commit', '')}`",
         f"- observed Atmosphère commit: `{build.get('observed_atmosphere_commit', '')}`",
         f"- libnx source: {build.get('libnx_version', '')} / `{build.get('libnx_commit', '')}`",
@@ -50,6 +55,8 @@ def render_markdown(record: dict[str, Any], level: str = "phase0") -> str:
         f"- Wi-Fi off/on: {record.get('lifecycle', {}).get('wifi_cycle', {}).get('passes', 0)}/{REQUIRED_COUNTS['wifi_cycle']}",
         f"- AP changes: {record.get('lifecycle', {}).get('ap_change', {}).get('passes', 0)}/{REQUIRED_COUNTS['ap_change']}",
         f"- app launch/close: {record.get('lifecycle', {}).get('app_launch_close', {}).get('passes', 0)}/{REQUIRED_COUNTS['app_launch_close']}",
+        f"- session admission churn: {len(record.get('session_admission', {}).get('attempts', []))}/{REQUIRED_COUNTS['session_admission']} minimum",
+        f"- recent logs secret-free: {record.get('diagnostics', {}).get('recent_logs_secret_free')}",
         "",
     ]
     if errors:
@@ -62,14 +69,18 @@ def render_markdown(record: dict[str, Any], level: str = "phase0") -> str:
 
 def synthetic_complete_record() -> dict[str, Any]:
     record = new_record(Path.cwd())
+    synthetic_commit = "9" * 40
     record["build"].update(
         {
-            "nxless_commit": "9" * 40,
+            "nxless_commit": synthetic_commit,
             "package_sha256": "a" * 64,
+            "probe_source_commit": synthetic_commit,
+            "probe_sha256": "b" * 64,
             "source_tree_clean": True,
             "switch_toolchain_verified": True,
             "atmosphere_source_verified": True,
             "clean_switch_build": True,
+            "clean_probe_build": True,
             "observed_devkitA64_package": "devkitA64 r30-1",
             "observed_gcc_version": GCC_VERSION_PREFIX,
             "observed_libnx_package": LIBNX_PACKAGE,
@@ -93,7 +104,15 @@ def synthetic_complete_record() -> dict[str, Any]:
     for key in hv["fault_injection"]:
         hv["fault_injection"][key] = True
     record["console"].update(
-        {"model": "HAC-001 synthetic", "hbmenu_tcp_baseline": True, "hbmenu_udp_baseline": True}
+        {
+            "model": "HAC-001 synthetic",
+            "hos": HOS,
+            "atmosphere_version": ATMOSPHERE_VERSION,
+            "atmosphere_commit": ATMOSPHERE_COMMIT,
+            "network": "synthetic LAN",
+            "hbmenu_tcp_baseline": True,
+            "hbmenu_udp_baseline": True,
+        }
     )
     record["recovery"]["disable_flag_boots"] = [_attempt(True, "SafeDisabled") for _ in range(10)]
     record["recovery"]["directory_removal"] = {
@@ -116,9 +135,15 @@ def synthetic_complete_record() -> dict[str, Any]:
             "wifi_cycle": {"attempts": 10, "passes": 10},
             "ap_change": {"attempts": 5, "passes": 5},
             "airplane_wifi": {"attempts": 1, "passes": 1},
+            "wifi_ethernet": {"available": False, "attempts": 0, "passes": 0},
+            "ethernet_wifi": {"available": False, "attempts": 0, "passes": 0},
             "app_launch_close": {"attempts": 20, "passes": 20},
         }
     )
+    record["session_admission"]["attempts"] = [
+        {"completed": True, "sm_ack_abort": False, "notes": ""},
+        {"completed": True, "sm_ack_abort": False, "notes": ""},
+    ]
     record["resources"].update(
         {
             "private_heap_bytes": 2 * 1024 * 1024,
@@ -130,6 +155,7 @@ def synthetic_complete_record() -> dict[str, Any]:
             "unbounded_growth_detected": False,
         }
     )
+    record["diagnostics"].update({"recent_logs_secret_free": True, "notes": "synthetic"})
     record["review"] = {
         "reviewer": "synthetic-reviewer",
         "date": "2026-09-04",

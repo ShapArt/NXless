@@ -6,17 +6,35 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .record_commands import (
-    _cmd_record_boot, _cmd_record_lifecycle, _cmd_record_network, _cmd_record_app,
-    _cmd_record_directory_recovery, _cmd_record_resources, _cmd_record_review,
+    _cmd_record_boot,
+    _cmd_record_lifecycle,
+    _cmd_record_network,
+    _cmd_record_app,
+    _cmd_record_directory_recovery,
+    _cmd_record_resources,
+    _cmd_record_review,
+    _cmd_record_console,
+    _cmd_record_session_admission,
+    _cmd_record_diagnostics,
+    _cmd_record_ethernet_availability,
+    _cmd_record_failure,
 )
 from .gate_commands import (
-    _cmd_record_host, _cmd_record_build, _cmd_new_record, _cmd_check, _cmd_echo, _cmd_preflight,
+    _cmd_record_host,
+    _cmd_record_build,
+    _cmd_record_probe_build,
+    _cmd_new_record,
+    _cmd_check,
+    _cmd_echo,
+    _cmd_preflight,
 )
+
 
 def main(
     *,
     collect_host_verification: Callable[..., Any],
     record_switch_build: Callable[..., Any],
+    record_probe_build: Callable[..., Any],
     preflight: Callable[..., Any],
 ) -> int:
     parser = argparse.ArgumentParser(description="NXless Phase 0 hardware-test helper")
@@ -44,6 +62,23 @@ def main(
     p_build.add_argument("--builder", default=os.environ.get("USER", ""))
     p_build.set_defaults(func=lambda args: _cmd_record_build(args, record_switch_build))
 
+    p_probe = sub.add_parser("record-probe-build", help="build and bind the test-only NXlessProbe.nro to this evidence record")
+    p_probe.add_argument("--record", type=Path, required=True)
+    p_probe.add_argument("--repo", type=Path, default=Path.cwd())
+    p_probe.set_defaults(func=lambda args: _cmd_record_probe_build(args, record_probe_build))
+
+    p_console = sub.add_parser("record-console", help="record observed console identity and HBMenu network baseline")
+    p_console.add_argument("--record", type=Path, required=True)
+    p_console.add_argument("--model", required=True)
+    p_console.add_argument("--hos", required=True)
+    p_console.add_argument("--atmosphere-version", required=True)
+    p_console.add_argument("--atmosphere-commit", required=True)
+    p_console.add_argument("--sd-filesystem-capacity", default="")
+    p_console.add_argument("--network", required=True)
+    p_console.add_argument("--hbmenu-tcp-baseline", choices=("pass", "fail"), required=True)
+    p_console.add_argument("--hbmenu-udp-baseline", choices=("pass", "fail"), required=True)
+    p_console.set_defaults(func=_cmd_record_console)
+
     p_boot = sub.add_parser("record-boot", help="append one cold-boot result")
     p_boot.add_argument("--record", type=Path, required=True)
     p_boot.add_argument("--mode", choices=("disable", "mitm"), required=True)
@@ -63,6 +98,18 @@ def main(
     )
     p_life.add_argument("--result", choices=("pass", "fail"), required=True)
     p_life.set_defaults(func=_cmd_record_lifecycle)
+
+    p_eth = sub.add_parser("record-ethernet-availability", help="record whether bidirectional Wi-Fi/Ethernet transition testing is available")
+    p_eth.add_argument("--record", type=Path, required=True)
+    p_eth.add_argument("--available", choices=("yes", "no"), required=True)
+    p_eth.set_defaults(func=_cmd_record_ethernet_availability)
+
+    p_session = sub.add_parser("record-session-admission", help="append one bsd:u client/session admission churn result")
+    p_session.add_argument("--record", type=Path, required=True)
+    p_session.add_argument("--result", choices=("pass", "fail"), required=True)
+    p_session.add_argument("--sm-ack-abort", choices=("yes", "no"), required=True)
+    p_session.add_argument("--notes", default="")
+    p_session.set_defaults(func=_cmd_record_session_admission)
 
     p_net = sub.add_parser("record-network", help="record TCP or UDP passthrough evidence")
     p_net.add_argument("--record", type=Path, required=True)
@@ -100,6 +147,18 @@ def main(
     p_res.add_argument("--registry-leak-detected", choices=("yes", "no"), required=True)
     p_res.add_argument("--unbounded-growth-detected", choices=("yes", "no"), required=True)
     p_res.set_defaults(func=_cmd_record_resources)
+
+    p_diag = sub.add_parser("record-diagnostics", help="record review of recent sanitized diagnostics/logs")
+    p_diag.add_argument("--record", type=Path, required=True)
+    p_diag.add_argument("--recent-logs-secret-free", choices=("yes", "no"), required=True)
+    p_diag.add_argument("--notes", default="")
+    p_diag.set_defaults(func=_cmd_record_diagnostics)
+
+    p_failure = sub.add_parser("record-failure", help="append a blocking crash/fatal/failure observation")
+    p_failure.add_argument("--record", type=Path, required=True)
+    p_failure.add_argument("--kind", required=True)
+    p_failure.add_argument("--details", required=True)
+    p_failure.set_defaults(func=_cmd_record_failure)
 
     p_review = sub.add_parser("record-review", help="record independent code-review result")
     p_review.add_argument("--record", type=Path, required=True)

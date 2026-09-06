@@ -85,6 +85,7 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
         required_paths = (
             "'Makefile'",
             "'.gitignore'",
+            "'docs/hardware-testing.md'",
             "'scripts/phase0_build.py'",
             "'scripts/phase0_hardware.py'",
             "'scripts/phase0_hw/**'",
@@ -111,14 +112,16 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("mkdir -p toolchain-cache", text)
         self.assertNotIn("cat > toolchain-package-sha256.expected", text)
 
-    def test_probe_archives_test_only_hardware_probe_after_clean_acceptance(self):
+    def test_probe_is_machine_bound_into_the_exact_hardware_record(self):
         text = self._text()
         required_markers = (
-            "Build test-only hardware probe",
-            "make -C tools/hardware_probe clean",
-            "make -C tools/hardware_probe",
+            "Build and bind test-only hardware probe",
+            "python3 scripts/phase0_hardware.py record-probe-build --repo . --record \"$RECORD\"",
             "test -f tools/hardware_probe/NXlessProbe.nro",
             "sha256sum tools/hardware_probe/NXlessProbe.nro | tee evidence/phase0-probe-sha256.txt",
+            'build["probe_source_commit"] == record["build"]["nxless_commit"]',
+            'build["probe_sha256"] == observed',
+            'build["clean_probe_build"] is True',
             "evidence/phase0-probe-sha256.txt",
             "tools/hardware_probe/NXlessProbe.nro",
         )
@@ -127,7 +130,7 @@ class ToolchainProbeWorkflowContractTests(unittest.TestCase):
 
         self.assertLess(
             text.index("make phase0-build"),
-            text.index("make -C tools/hardware_probe clean"),
+            text.index("record-probe-build"),
             "test-only probe must be built only after the clean canonical Phase 0 acceptance build",
         )
 

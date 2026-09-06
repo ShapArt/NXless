@@ -120,6 +120,47 @@ class Phase0HardwareTests(unittest.TestCase):
             self.assertTrue(any("Atmosphere source gate output does not contain machine-readable observed identity" in b for b in blockers))
             self.assertEqual(updated, before)
 
+    def test_record_probe_build_hashes_fresh_probe_and_binds_source_commit(self):
+        from unittest.mock import patch
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            repo = Path(td)
+            probe_dir = repo / "tools" / "hardware_probe"
+            probe_dir.mkdir(parents=True)
+            current_commit = "2" * 40
+            record = phase0.synthetic_complete_record()
+            record["build"].update({
+                "nxless_commit": current_commit,
+                "probe_source_commit": "",
+                "probe_sha256": "",
+                "clean_probe_build": False,
+                "clean_switch_build": True,
+                "switch_toolchain_verified": True,
+            })
+
+            def fake_git(_repo, *args):
+                if args == ("rev-parse", "HEAD"):
+                    return current_commit
+                if args[:3] == ("status", "--porcelain", "--"):
+                    return ""
+                return ""
+
+            def fake_gate(command, env=None):
+                if command[:3] == ["make", "-C", str(probe_dir)] and "clean" not in command:
+                    (probe_dir / "NXlessProbe.nro").write_bytes(b"fresh-probe")
+                return "pass", "ok"
+
+            ready = {"ready": True, "toolchain_gate": "pass", "blockers": []}
+            with patch.object(phase0, "_git", side_effect=fake_git), \
+                 patch.object(phase0, "preflight", return_value=ready), \
+                 patch.object(phase0, "_run_gate", side_effect=fake_gate):
+                updated, blockers = phase0.record_probe_build(record, repo)
+
+            self.assertEqual(blockers, [])
+            self.assertTrue(updated["build"]["clean_probe_build"])
+            self.assertEqual(updated["build"]["probe_source_commit"], current_commit)
+            self.assertEqual(updated["build"]["probe_sha256"], phase0.sha256_file(probe_dir / "NXlessProbe.nro"))
+
     def test_tcp_and_udp_echo(self):
         server = phase0.EchoServer("127.0.0.1", tcp_port=0, udp_port=0)
         server.start()
