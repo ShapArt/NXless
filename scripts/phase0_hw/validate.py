@@ -4,6 +4,7 @@ from typing import Any
 
 from .preflight_validate import validate_preflight
 from .hardware_validate import validate_hardware
+from .registry_telemetry import validate_registry_telemetry
 
 
 def validate_record(record: dict[str, Any], level: str = "phase0") -> list[str]:
@@ -13,6 +14,7 @@ def validate_record(record: dict[str, Any], level: str = "phase0") -> list[str]:
     if level == "preflight":
         return errors
     validate_hardware(record, errors)
+    validate_registry_telemetry(record, errors)
     network = record.get("network", {})
     for proto in ("tcp", "udp"):
         target = str(network.get(proto, {}).get("target", "")).strip()

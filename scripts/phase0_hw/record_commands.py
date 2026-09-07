@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .schema import append_boot, add_lifecycle_attempt, append_session_admission
+from .registry_telemetry import parse_registry_status_line
 
 
 def _read_record(path: Path) -> dict[str, Any]:

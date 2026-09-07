@@ -19,6 +19,7 @@ from .record_commands import (
     _cmd_record_ethernet_availability,
     _cmd_record_failure,
 )
+from .registry_telemetry import _cmd_record_registry_telemetry
 from .gate_commands import (
     _cmd_record_host,
     _cmd_record_build,
@@ -147,6 +148,18 @@ def main(
     p_res.add_argument("--registry-leak-detected", choices=("yes", "no"), required=True)
     p_res.add_argument("--unbounded-growth-detected", choices=("yes", "no"), required=True)
     p_res.set_defaults(func=_cmd_record_resources)
+
+    p_registry = sub.add_parser(
+        "record-registry-telemetry",
+        help="bind SocketRegistry high-water evidence to the exact nxl:ctl status line observed after probe socket tests",
+    )
+    p_registry.add_argument("--record", type=Path, required=True)
+    p_registry.add_argument(
+        "--status-line",
+        required=True,
+        help="copy the exact clients=... client-high-water=... status line printed by NXlessProbe after socket tests",
+    )
+    p_registry.set_defaults(func=_cmd_record_registry_telemetry)
 
     p_diag = sub.add_parser("record-diagnostics", help="record review of recent sanitized diagnostics/logs")
     p_diag.add_argument("--record", type=Path, required=True)
