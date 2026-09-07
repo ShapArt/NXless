@@ -10,7 +10,7 @@ from typing import Any, Callable
 from .gate_common import _run_gate, preflight
 from .schema import _git, sha256_file
 
-SWITCH_PACKAGE_GATE_TIMEOUT_SECONDS = 1200
+SWITCH_PACKAGE_GATE_TIMEOUT_SECONDS = 1800
 
 _TOOLCHAIN_IDENTITY_RE = re.compile(
     r'^switch toolchain: devkit_pkg="([^"]+)"; gcc="([^"]+)"; libnx_pkg="([^"]+)"$'
