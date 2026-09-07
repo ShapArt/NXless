@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import os
 import re
+import shlex
 import shutil
 import subprocess
 from datetime import datetime, timezone
@@ -11,9 +12,43 @@ from typing import Any, Callable
 
 from .record import _git, sha256_file
 
-def _run_gate(command: list[str], env: dict[str, str] | None = None) -> tuple[str, str]:
+DEFAULT_GATE_TIMEOUT_SECONDS = 300
+
+
+def _timeout_output(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
+
+def _run_gate(
+    command: list[str],
+    env: dict[str, str] | None = None,
+    *,
+    timeout_seconds: int | float = DEFAULT_GATE_TIMEOUT_SECONDS,
+) -> tuple[str, str]:
     try:
-        proc = subprocess.run(command, capture_output=True, text=True, env=env, check=False)
+        proc = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            env=env,
+            check=False,
+            timeout=timeout_seconds,
+        )
+    except subprocess.TimeoutExpired as exc:
+        stdout = _timeout_output(exc.stdout)
+        stderr = _timeout_output(exc.stderr)
+        parts = [
+            f"gate timed out after {timeout_seconds}s: {shlex.join(command)}",
+        ]
+        if stdout.strip():
+            parts.extend(("stdout:", stdout.strip()))
+        if stderr.strip():
+            parts.extend(("stderr:", stderr.strip()))
+        return "fail", "\n".join(parts)
     except OSError as exc:
         return "fail", str(exc)
     output = (proc.stdout + proc.stderr).strip()
