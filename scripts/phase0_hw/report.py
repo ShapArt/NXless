@@ -14,6 +14,7 @@ from .schema import (
     _attempt,
     new_record,
 )
+from .probe_evidence import record_probe_run
 from .validate import validate_record
 
 
@@ -122,8 +123,19 @@ def synthetic_complete_record() -> dict[str, Any]:
         "networking_restored": True,
     }
     record["transparent_mitm"]["cold_boots"] = [_attempt(True, "DisconnectedPassthrough") for _ in range(20)]
-    record["network"]["tcp"].update({"target": "127.0.0.1:5001", "concurrent_sockets": 4, "baseline_ok": True, "nxless_ok": True})
-    record["network"]["udp"].update({"target": "127.0.0.1:5002", "concurrent_sockets": 4, "baseline_ok": True, "nxless_ok": True})
+    echo_line = "Echo target 127.0.0.1 TCP:5001 UDP:5002 concurrency:4"
+    record_probe_run(
+        record,
+        "baseline",
+        echo_line,
+        "Summary: ctl=UNAVAILABLE tcp=PASS udp=PASS",
+    )
+    record_probe_run(
+        record,
+        "nxless",
+        echo_line,
+        "Summary: ctl=PASS tcp=PASS udp=PASS",
+    )
     record["applications"] = [
         {"title": "Synthetic App A", "version": "1", "baseline_ok": True, "nxless_ok": True},
         {"title": "Synthetic App B", "version": "1", "baseline_ok": True, "nxless_ok": True},

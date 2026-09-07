@@ -74,6 +74,21 @@ def _empty_registry_telemetry() -> dict[str, Any]:
     }
 
 
+def _empty_probe_run() -> dict[str, Any]:
+    return {
+        "observed": False,
+        "echo_line": "",
+        "summary_line": "",
+        "host": "",
+        "tcp_port": None,
+        "udp_port": None,
+        "concurrent": None,
+        "ctl": "",
+        "tcp_ok": None,
+        "udp_ok": None,
+    }
+
+
 def new_record(repo_root: Path) -> dict[str, Any]:
     commit = _git(repo_root, "rev-parse", "HEAD") or "UNKNOWN"
     return {
@@ -144,6 +159,10 @@ def new_record(repo_root: Path) -> dict[str, Any]:
         "network": {
             "tcp": {"target": "", "concurrent_sockets": 0, "baseline_ok": False, "nxless_ok": False},
             "udp": {"target": "", "concurrent_sockets": 0, "baseline_ok": False, "nxless_ok": False},
+            "probe_runs": {
+                "baseline": _empty_probe_run(),
+                "nxless": _empty_probe_run(),
+            },
         },
         "applications": [],
         "lifecycle": {

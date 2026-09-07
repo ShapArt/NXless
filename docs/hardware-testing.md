@@ -53,19 +53,21 @@ The evidence record must contain both `build.package_sha256` and `build.probe_sh
 
 ## 4. Prepare the SD card safely
 
-Keep recovery available before the first enabled boot.
+Keep recovery available before the first enabled boot. The literal network baseline must be taken with NXless absent, not merely disabled.
 
-1. Copy only the verified Phase 0 package layout to the SD card.
-2. Copy the separately verified `NXlessProbe.nro` to the Homebrew Menu location you use for test tools.
-3. Confirm `/config/nxless/` exists.
-4. First test with `/config/nxless/disable.flag` present.
-5. Never modify NAND or Nintendo system files for NXless recovery.
+1. Power the console off completely.
+2. Copy the separately verified `NXlessProbe.nro` to the Homebrew Menu location used for test tools.
+3. Make sure `/atmosphere/contents/0100000000004E58` is absent for the baseline run. If an older NXless copy exists, remove only that program directory while powered off.
+4. Do not copy the new sysmodule package yet; first capture the no-NXless baseline in step 7.
+5. After the baseline is recorded, power off and copy only the verified Phase 0 package layout to the SD card.
+6. Confirm `/config/nxless/` exists and make the first NXless boot with `/config/nxless/disable.flag` present.
+7. Never modify NAND or Nintendo system files for NXless recovery.
 
 See `docs/recovery.md` for the recovery procedure.
 
 ## 5. Record the actual console identity and HBMenu baseline
 
-Record what is actually shown/installed on the test console, not the target values from the build record:
+Record what is actually shown/installed on the test console, not the target values from the build record. The HBMenu baseline here is taken while the NXless sysmodule is absent:
 
 ```sh
 python3 scripts/phase0_hardware.py record-console \
@@ -92,18 +94,21 @@ python3 scripts/phase0_hardware.py echo-server --host 0.0.0.0 --tcp-port 5001 --
 
 Use the machine's LAN IPv4 literal in the probe configuration. Phase 0 deliberately does not use DNS as part of this test.
 
-## 7. Run the test-only probe
+## 7. Capture the literal no-NXless network baseline
 
-Record both baseline-without-NXless and transparent-MITM results:
+With `/atmosphere/contents/0100000000004E58` absent, run `NXlessProbe`. Copy the exact `Echo target ...` and final `Summary: ...` lines from the screen. A valid baseline must report `ctl=UNAVAILABLE`; `disable.flag` is not an acceptable substitute because the NXless control service still exists in that mode.
 
 ```sh
-python3 scripts/phase0_hardware.py record-network --record evidence/phase0.json --protocol tcp --target 192.0.2.10:5001 --concurrent 4 --baseline pass --nxless pass
-python3 scripts/phase0_hardware.py record-network --record evidence/phase0.json --protocol udp --target 192.0.2.10:5002 --concurrent 4 --baseline pass --nxless pass
+python3 scripts/phase0_hardware.py record-network --record evidence/phase0.json --mode baseline \
+  --echo-line "Echo target 192.0.2.10 TCP:5001 UDP:5002 concurrency:4" \
+  --summary-line "Summary: ctl=UNAVAILABLE tcp=PASS udp=PASS"
 ```
 
-Replace the documentation-only address above with the real LAN address. `NXlessProbe` supports at most 16 concurrent sockets per protocol; the hardware validator rejects values above 16 instead of silently accepting impossible evidence.
+The values above show only the required CLI shape. Replace them with the exact two lines printed by the tested console. The parser accepts an IPv4 literal only and a probe concurrency within the compiled Phase 0 maximum of 16.
 
-## 8. Recovery and cold-boot matrix
+After recording the baseline, power the console off and install the exact verified NXless package as described in step 4. Do not edit `network.tcp`, `network.udp`, or the captured probe fields in JSON by hand.
+
+## 8. Recovery, cold-boot and transparent-MITM matrix
 
 Required minimums:
 
@@ -117,11 +122,23 @@ python3 scripts/phase0_hardware.py record-boot --record evidence/phase0.json --m
 python3 scripts/phase0_hardware.py record-boot --record evidence/phase0.json --mode mitm --cold-boot pass --home pass --network pass --ctl-status DisconnectedPassthrough
 ```
 
-Also prove directory-removal recovery while powered off:
+After the required transparent-MITM boots, run `NXlessProbe` against the same echo target and concurrency used for the baseline. Copy the exact two lines again. A valid NXless run must report `ctl=PASS` and both echo tests must pass:
+
+```sh
+python3 scripts/phase0_hardware.py record-network --record evidence/phase0.json --mode nxless \
+  --echo-line "Echo target 192.0.2.10 TCP:5001 UDP:5002 concurrency:4" \
+  --summary-line "Summary: ctl=PASS tcp=PASS udp=PASS"
+```
+
+The baseline and NXless runs must use the same IPv4 target, ports and concurrency. The validator re-parses both captured lines and rejects missing provenance, mismatches, `ctl=ERROR`, a baseline that still exposes `nxl:ctl`, or failed TCP/UDP echo results.
+
+Also prove directory-removal recovery after NXless has actually been installed: power off, remove only `/atmosphere/contents/0100000000004E58`, boot, verify HOME and normal networking, and record the result:
 
 ```sh
 python3 scripts/phase0_hardware.py record-recovery --record evidence/phase0.json --powered-off pass --removed-only-program-dir pass --boot pass --network pass
 ```
+
+Restore the same verified candidate package before continuing the remaining NXless lifecycle matrix.
 
 ## 9. Lifecycle and session-admission matrix
 

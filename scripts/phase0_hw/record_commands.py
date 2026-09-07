@@ -6,6 +6,7 @@ from typing import Any
 
 from .schema import append_boot, add_lifecycle_attempt, append_session_admission
 from .registry_telemetry import parse_registry_status_line
+from .probe_evidence import record_probe_run
 
 
 def _read_record(path: Path) -> dict[str, Any]:
@@ -63,17 +64,13 @@ def _cmd_record_lifecycle(args) -> int:
 
 def _cmd_record_network(args) -> int:
     record = _read_record(args.record)
-    item = record["network"][args.protocol]
-    item.update(
-        {
-            "target": args.target,
-            "concurrent_sockets": args.concurrent,
-            "baseline_ok": _pass_fail(args.baseline),
-            "nxless_ok": _pass_fail(args.nxless),
-        }
-    )
+    run = record_probe_run(record, args.mode, args.echo_line, args.summary_line)
     _write_record_atomic(args.record, record)
-    print(f"Recorded {args.protocol.upper()} passthrough evidence")
+    print(
+        f"Recorded {args.mode} NXlessProbe network evidence: "
+        f"ctl={run['ctl']} tcp={'PASS' if run['tcp_ok'] else 'FAIL'} "
+        f"udp={'PASS' if run['udp_ok'] else 'FAIL'}"
+    )
     return 0
 
 

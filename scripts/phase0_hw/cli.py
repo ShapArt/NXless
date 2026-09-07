@@ -112,13 +112,22 @@ def main(
     p_session.add_argument("--notes", default="")
     p_session.set_defaults(func=_cmd_record_session_admission)
 
-    p_net = sub.add_parser("record-network", help="record TCP or UDP passthrough evidence")
+    p_net = sub.add_parser(
+        "record-network",
+        help="record baseline or NXless TCP/UDP evidence from exact NXlessProbe output",
+    )
     p_net.add_argument("--record", type=Path, required=True)
-    p_net.add_argument("--protocol", choices=("tcp", "udp"), required=True)
-    p_net.add_argument("--target", required=True)
-    p_net.add_argument("--concurrent", type=int, required=True)
-    p_net.add_argument("--baseline", choices=("pass", "fail"), required=True)
-    p_net.add_argument("--nxless", choices=("pass", "fail"), required=True)
+    p_net.add_argument("--mode", choices=("baseline", "nxless"), required=True)
+    p_net.add_argument(
+        "--echo-line",
+        required=True,
+        help="copy the exact Echo target ... line printed by NXlessProbe",
+    )
+    p_net.add_argument(
+        "--summary-line",
+        required=True,
+        help="copy the exact Summary: ctl=... tcp=... udp=... line printed by NXlessProbe",
+    )
     p_net.set_defaults(func=_cmd_record_network)
 
     p_app = sub.add_parser("record-app", help="record one real application smoke result")
