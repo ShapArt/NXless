@@ -61,6 +61,19 @@ def _attempt(ok: bool = True, ctl_status: str = "") -> dict[str, Any]:
     }
 
 
+def _empty_registry_telemetry() -> dict[str, Any]:
+    return {
+        "observed": False,
+        "status_line": "",
+        "active_clients": None,
+        "client_high_water": None,
+        "active_sockets": None,
+        "socket_high_water": None,
+        "dropped_logs": None,
+        "last_error": None,
+    }
+
+
 def new_record(repo_root: Path) -> dict[str, Any]:
     commit = _git(repo_root, "rev-parse", "HEAD") or "UNKNOWN"
     return {
@@ -152,6 +165,7 @@ def new_record(repo_root: Path) -> dict[str, Any]:
             "handle_count": None,
             "registry_leak_detected": None,
             "unbounded_growth_detected": None,
+            "registry_telemetry": _empty_registry_telemetry(),
         },
         "diagnostics": {
             "recent_logs_secret_free": None,

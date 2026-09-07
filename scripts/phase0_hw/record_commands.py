@@ -112,15 +112,13 @@ def _cmd_record_resources(args) -> int:
         {
             "private_heap_bytes": args.private_heap_bytes,
             "peak_heap_bytes": args.peak_heap_bytes,
-            "peak_clients": args.peak_clients,
-            "peak_sockets": args.peak_sockets,
             "handle_count": args.handle_count,
             "registry_leak_detected": _yes_no(args.registry_leak_detected),
             "unbounded_growth_detected": _yes_no(args.unbounded_growth_detected),
         }
     )
     _write_record_atomic(args.record, record)
-    print("Recorded resource evidence")
+    print("Recorded resource evidence; registry peaks must come from nxl:ctl telemetry")
     return 0
 
 

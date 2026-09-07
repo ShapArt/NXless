@@ -138,12 +138,13 @@ def main(
     p_rec.add_argument("--network", choices=("pass", "fail"), required=True)
     p_rec.set_defaults(func=_cmd_record_directory_recovery)
 
-    p_res = sub.add_parser("record-resources", help="record bounded-resource observations")
+    p_res = sub.add_parser(
+        "record-resources",
+        help="record bounded heap/handle observations; SocketRegistry peaks are recorded separately from nxl:ctl",
+    )
     p_res.add_argument("--record", type=Path, required=True)
     p_res.add_argument("--private-heap-bytes", type=int, required=True)
     p_res.add_argument("--peak-heap-bytes", type=int, required=True)
-    p_res.add_argument("--peak-clients", type=int, required=True)
-    p_res.add_argument("--peak-sockets", type=int, required=True)
     p_res.add_argument("--handle-count", type=int)
     p_res.add_argument("--registry-leak-detected", choices=("yes", "no"), required=True)
     p_res.add_argument("--unbounded-growth-detected", choices=("yes", "no"), required=True)

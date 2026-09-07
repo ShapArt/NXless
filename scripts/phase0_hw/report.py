@@ -153,6 +153,16 @@ def synthetic_complete_record() -> dict[str, Any]:
             "handle_count": 80,
             "registry_leak_detected": False,
             "unbounded_growth_detected": False,
+            "registry_telemetry": {
+                "observed": True,
+                "status_line": "clients=0 client-high-water=4 sockets=0 socket-high-water=64 dropped-logs=0 last-error=0",
+                "active_clients": 0,
+                "client_high_water": 4,
+                "active_sockets": 0,
+                "socket_high_water": 64,
+                "dropped_logs": 0,
+                "last_error": 0,
+            },
         }
     )
     record["diagnostics"].update({"recent_logs_secret_free": True, "notes": "synthetic"})

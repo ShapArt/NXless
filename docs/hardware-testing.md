@@ -177,13 +177,23 @@ Use the actual application titles in the evidence record.
 
 ## 11. Resource and diagnostics evidence
 
-Record observed bounded-resource values after the lifecycle/churn matrix:
+Record heap, handle and bounded-growth observations after the lifecycle/churn matrix:
 
 ```sh
-python3 scripts/phase0_hardware.py record-resources --record evidence/phase0.json --private-heap-bytes 2097152 --peak-heap-bytes 2097152 --peak-clients 1 --peak-sockets 1 --registry-leak-detected no --unbounded-growth-detected no
+python3 scripts/phase0_hardware.py record-resources --record evidence/phase0.json --private-heap-bytes 2097152 --peak-heap-bytes 2097152 --registry-leak-detected no --unbounded-growth-detected no
 ```
 
-The numeric values above are examples of the CLI shape, not expected measurements. Record the observed values from the tested build.
+The heap values above are examples of the CLI shape, not expected measurements. Record the observed values from the tested build.
+
+SocketRegistry client/socket high-water marks have a single evidence source: the exact `nxl:ctl` status line printed by `NXlessProbe`. After the lifecycle/churn matrix, run `NXlessProbe` again against the same echo endpoints and copy the full line shown under `Status after socket tests:`. Record that line verbatim:
+
+```sh
+python3 scripts/phase0_hardware.py record-registry-telemetry \
+  --record evidence/phase0.json \
+  --status-line "clients=0 client-high-water=4 sockets=0 socket-high-water=16 dropped-logs=0 last-error=0"
+```
+
+The status line above is only an example of the required format. Replace it with the exact line from the tested console. Do not manually enter or edit `peak_clients` or `peak_sockets`; `record-registry-telemetry` parses the captured line and writes those fields itself. The hardware validator rejects missing telemetry, malformed telemetry, or peak values that do not match the captured line.
 
 Review recent diagnostics/log output for credentials, tokens, proxy URIs, private keys or other secrets, then record the result explicitly:
 
