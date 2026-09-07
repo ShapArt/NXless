@@ -52,6 +52,7 @@ def render_markdown(record: dict[str, Any], level: str = "phase0") -> str:
         "",
         f"- disable.flag cold boots: {len(record.get('recovery', {}).get('disable_flag_boots', []))}/{REQUIRED_COUNTS['disable_flag_boots']}",
         f"- transparent MITM cold boots: {len(record.get('transparent_mitm', {}).get('cold_boots', []))}/{REQUIRED_COUNTS['transparent_mitm_boots']}",
+        f"- HOME/resume: {record.get('lifecycle', {}).get('home_resume', {}).get('passes', 0)}/{REQUIRED_COUNTS['home_resume']}",
         f"- sleep/wake: {record.get('lifecycle', {}).get('sleep_wake', {}).get('passes', 0)}/{REQUIRED_COUNTS['sleep_wake']}",
         f"- Wi-Fi off/on: {record.get('lifecycle', {}).get('wifi_cycle', {}).get('passes', 0)}/{REQUIRED_COUNTS['wifi_cycle']}",
         f"- AP changes: {record.get('lifecycle', {}).get('ap_change', {}).get('passes', 0)}/{REQUIRED_COUNTS['ap_change']}",
@@ -142,7 +143,7 @@ def synthetic_complete_record() -> dict[str, Any]:
     ]
     record["lifecycle"].update(
         {
-            "home_resume": {"attempts": 1, "passes": 1},
+            "home_resume": {"attempts": 2, "passes": 2},
             "sleep_wake": {"attempts": 20, "passes": 20},
             "wifi_cycle": {"attempts": 10, "passes": 10},
             "ap_change": {"attempts": 5, "passes": 5},

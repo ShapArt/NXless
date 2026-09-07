@@ -131,7 +131,7 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
     _check_counter(record, "wifi_cycle", REQUIRED_COUNTS["wifi_cycle"], "Wi-Fi off/on", errors)
     _check_counter(record, "ap_change", REQUIRED_COUNTS["ap_change"], "AP change", errors)
     _check_counter(record, "app_launch_close", REQUIRED_COUNTS["app_launch_close"], "app launch/close", errors)
-    _check_counter(record, "home_resume", 1, "HOME/resume", errors)
+    _check_counter(record, "home_resume", REQUIRED_COUNTS["home_resume"], "HOME/resume", errors)
     _check_counter(record, "airplane_wifi", 1, "airplane mode/Wi-Fi", errors)
     for key, label in (("wifi_ethernet", "Wi-Fi/Ethernet"), ("ethernet_wifi", "Ethernet/Wi-Fi")):
         item = record["lifecycle"].get(key, {})

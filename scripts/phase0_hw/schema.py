@@ -26,6 +26,7 @@ REGISTRY_MAX_SOCKETS = 512
 REQUIRED_COUNTS = {
     "disable_flag_boots": 10,
     "transparent_mitm_boots": 20,
+    "home_resume": 2,
     "sleep_wake": 20,
     "wifi_cycle": 10,
     "ap_change": 5,

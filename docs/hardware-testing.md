@@ -144,7 +144,7 @@ Restore the same verified candidate package before continuing the remaining NXle
 
 Record the required transitions with `record-lifecycle`:
 
-- HOME/resume
+- HOME/resume x2
 - sleep/wake x20
 - Wi-Fi off/on x10
 - access-point change x5
