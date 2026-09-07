@@ -13,7 +13,7 @@ spec.loader.exec_module(phase0)
 class Phase0HardwareTests(unittest.TestCase):
     def test_new_record_is_pinned_and_incomplete(self):
         record = phase0.new_record(Path(__file__).resolve().parents[2])
-        self.assertEqual(record["schema_version"], 3)
+        self.assertEqual(record["schema_version"], 4)
         self.assertEqual(record["build"]["atmosphere_commit"], "5388824")
         self.assertEqual(record["build"]["libnx_commit"], "7644c9b26099aa2d2145bc72a21ee24190e92085")
         self.assertEqual(record["build"]["libnx_version"], "4.12.0")
@@ -38,6 +38,14 @@ class Phase0HardwareTests(unittest.TestCase):
     def test_schema_v2_is_rejected(self):
         record = phase0.synthetic_complete_record()
         record["schema_version"] = 2
+        self.assertEqual(
+            phase0.validate_record(record, level="preflight"),
+            ["unsupported or missing schema_version"],
+        )
+
+    def test_schema_v3_is_rejected(self):
+        record = phase0.synthetic_complete_record()
+        record["schema_version"] = 3
         self.assertEqual(
             phase0.validate_record(record, level="preflight"),
             ["unsupported or missing schema_version"],
