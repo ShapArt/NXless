@@ -146,14 +146,12 @@ def main(
 
     p_res = sub.add_parser(
         "record-resources",
-        help="record bounded heap/handle observations; SocketRegistry peaks are recorded separately from nxl:ctl",
+        help="record observed registry leak/bounded-growth conclusions; SocketRegistry peaks come separately from nxl:ctl",
     )
     p_res.add_argument("--record", type=Path, required=True)
-    p_res.add_argument("--private-heap-bytes", type=int, required=True)
-    p_res.add_argument("--peak-heap-bytes", type=int, required=True)
-    p_res.add_argument("--handle-count", type=int)
     p_res.add_argument("--registry-leak-detected", choices=("yes", "no"), required=True)
     p_res.add_argument("--unbounded-growth-detected", choices=("yes", "no"), required=True)
+    p_res.add_argument("--notes", default="")
     p_res.set_defaults(func=_cmd_record_resources)
 
     p_registry = sub.add_parser(
