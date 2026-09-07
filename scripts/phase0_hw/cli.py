@@ -112,10 +112,7 @@ def main(
     p_session.add_argument("--notes", default="")
     p_session.set_defaults(func=_cmd_record_session_admission)
 
-    p_net = sub.add_parser(
-        "record-network",
-        help="record baseline or NXless TCP/UDP evidence from exact NXlessProbe output",
-    )
+    p_net = sub.add_parser("record-network", help="record baseline or NXless TCP/UDP evidence from exact NXlessProbe output")
     p_net.add_argument("--record", type=Path, required=True)
     p_net.add_argument("--mode", choices=("baseline", "nxless"), required=True)
     p_net.add_argument(
