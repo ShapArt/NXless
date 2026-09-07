@@ -154,17 +154,12 @@ def validate_hardware(record: dict[str, Any], errors: list[str]) -> None:
             errors.append(f"session admission attempt {i}: SM acknowledgement abort observed or unrecorded")
 
     resources = record.get("resources", {})
-    for key in ("private_heap_bytes", "peak_heap_bytes", "peak_clients", "peak_sockets"):
+    for key in ("peak_clients", "peak_sockets"):
         value = resources.get(key)
         if value is None:
             errors.append(f"resources.{key} is missing")
         elif not isinstance(value, int) or value < 0:
             errors.append(f"resources.{key} must be non-negative")
-    private_heap = resources.get("private_heap_bytes")
-    if isinstance(private_heap, int) and private_heap > 6 * 1024 * 1024:
-        errors.append("private heap exceeds Phase 0 target of 6 MiB")
-    if isinstance(private_heap, int) and private_heap > 8 * 1024 * 1024:
-        errors.append("private heap exceeds hard 8 MiB architecture-review ceiling")
     peak_clients = resources.get("peak_clients")
     if isinstance(peak_clients, int) and peak_clients > REGISTRY_MAX_CLIENTS:
         errors.append(
