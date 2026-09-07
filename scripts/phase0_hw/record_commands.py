@@ -107,15 +107,13 @@ def _cmd_record_resources(args) -> int:
     record = _read_record(args.record)
     record["resources"].update(
         {
-            "private_heap_bytes": args.private_heap_bytes,
-            "peak_heap_bytes": args.peak_heap_bytes,
-            "handle_count": args.handle_count,
             "registry_leak_detected": _yes_no(args.registry_leak_detected),
             "unbounded_growth_detected": _yes_no(args.unbounded_growth_detected),
+            "observation_notes": args.notes,
         }
     )
     _write_record_atomic(args.record, record)
-    print("Recorded resource evidence; registry peaks must come from nxl:ctl telemetry")
+    print("Recorded bounded-growth observations; registry peaks must come from nxl:ctl telemetry")
     return 0
 
 
