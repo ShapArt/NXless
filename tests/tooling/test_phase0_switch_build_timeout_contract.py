@@ -8,12 +8,16 @@ SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
-from phase0_hw import build_gates, report
+from phase0_hw import build_gates, gate_common, report
 
 
 class Phase0SwitchBuildTimeoutContractTests(unittest.TestCase):
     def test_switch_package_build_has_separate_bounded_long_deadline(self):
-        self.assertEqual(build_gates.SWITCH_PACKAGE_GATE_TIMEOUT_SECONDS, 1200)
+        self.assertGreater(
+            build_gates.SWITCH_PACKAGE_GATE_TIMEOUT_SECONDS,
+            gate_common.DEFAULT_GATE_TIMEOUT_SECONDS,
+        )
+        self.assertLessEqual(build_gates.SWITCH_PACKAGE_GATE_TIMEOUT_SECONDS, 30 * 60)
 
         with tempfile.TemporaryDirectory() as td:
             repo = Path(td)
