@@ -1,0 +1,6 @@
+# Host running: make hardware-echo
+# IPv4 literal only; DNS is intentionally not part of Phase 0 validation.
+host=192.168.1.10
+tcp_port=5001
+udp_port=5002
+concurrent=4

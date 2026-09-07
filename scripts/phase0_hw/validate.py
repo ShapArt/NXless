@@ -1,0 +1,34 @@
+from __future__ import annotations
+
+from typing import Any
+
+from .preflight_validate import validate_preflight
+from .hardware_validate import validate_hardware
+from .registry_telemetry import validate_registry_telemetry
+from .probe_evidence import validate_probe_network_evidence
+
+
+def validate_record(record: dict[str, Any], level: str = "phase0") -> list[str]:
+    if level not in {"preflight", "hardware", "phase0"}:
+        raise ValueError(f"unknown validation level: {level}")
+    errors = validate_preflight(record)
+    if level == "preflight":
+        return errors
+    validate_hardware(record, errors)
+    validate_registry_telemetry(record, errors)
+    validate_probe_network_evidence(record, errors)
+    network = record.get("network", {})
+    for proto in ("tcp", "udp"):
+        target = str(network.get(proto, {}).get("target", "")).strip()
+        if not target:
+            errors.append(f"{proto.upper()} network target is missing")
+    if level == "hardware":
+        return errors
+    review = record.get("review", {})
+    if review.get("critical_unresolved") != 0:
+        errors.append("independent review has unresolved Critical findings or is missing")
+    if review.get("important_unresolved") != 0:
+        errors.append("independent review has unresolved Important findings or is missing")
+    if not review.get("reviewer") or not review.get("date"):
+        errors.append("independent reviewer/date are missing")
+    return errors

@@ -1,0 +1,11 @@
+# Phase 0 CI-only supply-chain pins.
+actions_checkout.version=7.0.1
+actions_checkout.commit=3d3c42e5aac5ba805825da76410c181273ba90b1
+actions_checkout.source=https://github.com/actions/checkout
+actions_upload_artifact.version=7.0.1
+actions_upload_artifact.commit=043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+actions_upload_artifact.source=https://github.com/actions/upload-artifact
+cmake.version=4.4.3
+cmake.linux_x86_64_sha256=d6c83076c575bc00b823522ac974bda66d0af05d6ddc30e739c12385cf32c6cc
+cmake.source=https://github.com/Kitware/CMake
+host_container.base=debian:trixie-20260824-slim@sha256:d7e12182ce18b85b93007c1dedf31f2d29e01ccf3182cc4017c709b6259bc132
