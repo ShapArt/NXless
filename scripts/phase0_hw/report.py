@@ -159,13 +159,11 @@ def synthetic_complete_record() -> dict[str, Any]:
     ]
     record["resources"].update(
         {
-            "private_heap_bytes": 2 * 1024 * 1024,
-            "peak_heap_bytes": 3 * 1024 * 1024,
             "peak_clients": 4,
             "peak_sockets": 64,
-            "handle_count": 80,
             "registry_leak_detected": False,
             "unbounded_growth_detected": False,
+            "observation_notes": "synthetic bounded-growth observation",
             "registry_telemetry": {
                 "observed": True,
                 "status_line": "clients=0 client-high-water=4 sockets=0 socket-high-water=64 dropped-logs=0 last-error=0",
