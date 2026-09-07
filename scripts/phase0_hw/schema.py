@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 ATMOSPHERE_VERSION = "1.11.2"
 ATMOSPHERE_COMMIT = "5388824"
 ATMOSPHERE_FULL_COMMIT = "5388824be146a89619e8d641acd64599cf1c5f62"
@@ -178,13 +178,11 @@ def new_record(repo_root: Path) -> dict[str, Any]:
         },
         "session_admission": {"attempts": []},
         "resources": {
-            "private_heap_bytes": None,
-            "peak_heap_bytes": None,
             "peak_clients": None,
             "peak_sockets": None,
-            "handle_count": None,
             "registry_leak_detected": None,
             "unbounded_growth_detected": None,
+            "observation_notes": "",
             "registry_telemetry": _empty_registry_telemetry(),
         },
         "diagnostics": {
