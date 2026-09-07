@@ -10,6 +10,8 @@ from typing import Any, Callable
 from .gate_common import _run_gate, preflight
 from .schema import _git, sha256_file
 
+SWITCH_PACKAGE_GATE_TIMEOUT_SECONDS = 1200
+
 _TOOLCHAIN_IDENTITY_RE = re.compile(
     r'^switch toolchain: devkit_pkg="([^"]+)"; gcc="([^"]+)"; libnx_pkg="([^"]+)"$'
 )
@@ -98,7 +100,9 @@ def record_switch_build(
         return updated, blockers
 
     build_status, build_output = run_gate(
-        ["make", "-C", str(repo_root), "switch-package"], env=env
+        ["make", "-C", str(repo_root), "switch-package"],
+        env=env,
+        timeout_seconds=SWITCH_PACKAGE_GATE_TIMEOUT_SECONDS,
     )
     if build_status != "pass":
         blockers.append("clean Switch package build failed: " + build_output[-1000:])

@@ -53,7 +53,7 @@ class Phase0HardwareTests(unittest.TestCase):
                     return ""
                 return ""
 
-            def fake_gate(command, env=None):
+            def fake_gate(command, env=None, **kwargs):
                 if command[:2] == ["make", "-C"] and "switch-package" in command:
                     (repo / "output" / "NXless-phase0.zip").write_bytes(b"fresh-package")
                 return "pass", "ok"
@@ -145,7 +145,7 @@ class Phase0HardwareTests(unittest.TestCase):
                     return ""
                 return ""
 
-            def fake_gate(command, env=None):
+            def fake_gate(command, env=None, **kwargs):
                 if command[:3] == ["make", "-C", str(probe_dir)] and "clean" not in command:
                     (probe_dir / "NXlessProbe.nro").write_bytes(b"fresh-probe")
                 return "pass", "ok"
