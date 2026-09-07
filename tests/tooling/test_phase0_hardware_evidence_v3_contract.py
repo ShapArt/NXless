@@ -8,14 +8,14 @@ phase0 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(phase0)
 
 
-class Phase0HardwareEvidenceV3ContractTests(unittest.TestCase):
+class Phase0HardwareEvidenceV4ContractTests(unittest.TestCase):
     def test_hardware_record_is_machine_bound_before_original_switch_acceptance(self):
         repo = Path(__file__).resolve().parents[2]
         record = phase0.new_record(repo)
         missing = []
 
-        if record.get("schema_version") != 3:
-            missing.append("schema v3")
+        if record.get("schema_version") != 4:
+            missing.append("schema v4")
 
         build = record.get("build", {})
         for key in ("probe_source_commit", "probe_sha256", "clean_probe_build"):
@@ -54,7 +54,7 @@ class Phase0HardwareEvidenceV3ContractTests(unittest.TestCase):
 
         complete = phase0.synthetic_complete_record()
         if phase0.validate_record(complete, level="phase0"):
-            missing.append("synthetic v3 hardware evidence does not pass")
+            missing.append("synthetic v4 hardware evidence does not pass")
 
         no_probe = phase0.synthetic_complete_record()
         no_probe["build"]["probe_sha256"] = ""
